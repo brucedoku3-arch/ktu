@@ -173,4 +173,3 @@ def create_app(config_class="production"):
     except Exception:
         pass
   return app
-    return app
