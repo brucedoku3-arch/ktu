@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+
+{% block title %}Messages · CampusSocial{% endblock %}
+
+{% block content %}
+<div class="messaging-layout">
+  <!-- Inbox Header Section -->
+  <section class="messaging-header-card">
+    <div class="messaging-header-row">
+      <div class="messaging-title-group">
+        <h1 class="messaging-page-title">
+          <span class="title-icon">💬</span>
+          Campus Messages
+        </h1>
+        <p class="messaging-subtitle">
+          Direct, encrypted 1-to-1 student messaging with active verification.
+        </p>
+      </div>
+
+      <div class="messaging-actions-group">
+        <button
+          type="button"
+          class="btn btn-primary btn-compose-msg"
+          onclick="document.getElementById('newMsgModal').style.display='flex';"
+        >
+          ✏️ New Message
+        </button>
+      </div>
+    </div>
+
+    <!-- Quick Filter / Search Bar -->
+    <div class="inbox-search-bar">
+      <span class="search-icon">🔍</span>
+      <input
+        type="text"
+        id="convoSearchInput"
+        class="form-control inbox-search-input"
+        placeholder="Filter student conversations by username..."
+        onkeyup="filterConversations()"
+      >
+      {% if total_unread > 0 %}
+        <span class="badge-total-unread" title="{{ total_unread }} unread message(s)">
+          {{ total_unread }} Unread
+        </span>
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- Conversations List Stream -->
+  <section class="conversations-card">
+    {% if conversations and conversations|length > 0 %}
+      <div class="conversations-list" id="conversationsContainer">
+        {% for convo in conversations %}
+          <a
+            href="{{ url_for('messaging.conversation', username=convo.partner.username) }}"
+            class="conversation-row-item {% if convo.unread_count > 0 %}has-unread{% endif %}"
+            data-username="{{ convo.partner.username|lower }}"
+          >
+            <!-- Partner Avatar -->
+            <div class="convo-avatar-wrapper">
+              {% if convo.partner.avatar_url and convo.partner.avatar_url != 'default_avatar.png' %}
+                <img
+                  src="{{ url_for('static', filename='uploads/' + convo.partner.avatar_url) }}"
+                  alt="@{{ convo.partner.username }}"
+                  class="convo-avatar-img"
+                  onerror="this.src='{{ url_for('static', filename='uploads/avatars/default_avatar.png') }}';"
+                >
+              {% else %}
+                <div class="convo-avatar-fallback">
+                  {{ convo.partner.username[:2]|upper }}
+                </div>
+              {% endif %}
+
+              {% if convo.partner.is_admin %}
+                <span class="convo-admin-dot" title="Campus Admin">★</span>
+              {% endif %}
+            </div>
+
+            <!-- Conversation Meta & Message Snippet -->
+            <div class="convo-details-col">
+              <div class="convo-top-line">
+                <div class="convo-partner-info">
+                  <span class="convo-partner-name">@{{ convo.partner.username }}</span>
+                  <span class="convo-partner-id">{{ convo.partner.student_id }}</span>
+                </div>
+                <time class="convo-time" datetime="{{ convo.latest_message.created_at.isoformat() }}">
+                  {{ convo.latest_message.created_at.strftime('%b %d, %I:%M %p') }}
+                </time>
+              </div>
+
+              <div class="convo-bottom-line">
+                <p class="convo-snippet">
+                  {% if convo.latest_message.sender_id == current_user.id %}
+                    <span class="snippet-prefix">You: </span>
+                  {% endif %}
+                  {{ convo.latest_message.content }}
+                </p>
+
+                {% if convo.unread_count > 0 %}
+                  <span class="convo-unread-pill">{{ convo.unread_count }}</span>
+                {% elif convo.latest_message.sender_id == current_user.id %}
+                  <span class="convo-read-receipt" title="{% if convo.latest_message.is_read %}Read{% else %}Delivered{% endif %}">
+                    {% if convo.latest_message.is_read %}
+                      <span class="check-read">✓✓</span>
+                    {% else %}
+                      <span class="check-sent">✓</span>
+                    {% endif %}
+                  </span>
+                {% endif %}
+              </div>
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <!-- Empty Inbox State -->
+      <div class="empty-inbox-state">
+        <div class="empty-icon-circle">📬</div>
+        <h3 class="empty-inbox-title">No conversations yet</h3>
+        <p class="empty-inbox-desc">
+          Reach out to course mates, project partners, or friends on the campus feed.
+        </p>
+        <button
+          type="button"
+          class="btn btn-primary"
+          onclick="document.getElementById('newMsgModal').style.display='flex';"
+        >
+          Start a Conversation
+        </button>
+      </div>
+    {% endif %}
+  </section>
+</div>
+
+<!-- Compose New Message Modal -->
+<div id="newMsgModal" class="modal-overlay" style="display: none;" onclick="if(event.target === this) this.style.display='none';">
+  <div class="modal-dialog-card">
+    <div class="modal-header-row">
+      <h3 class="modal-dialog-title">💬 New Direct Message</h3>
+      <button
+        type="button"
+        class="btn-close-modal"
+        onclick="document.getElementById('newMsgModal').style.display='none';"
+        aria-label="Close modal"
+      >
+        &times;
+      </button>
+    </div>
+
+    <form method="POST" action="{{ url_for('messaging.send_message') }}" class="modal-form-body">
+      <div class="form-group">
+        <label for="recipientUsernameInput" class="form-label">
+          Student Username:
+        </label>
+        <div class="input-prefix-wrapper">
+          <span class="input-at-symbol">@</span>
+          <input
+            type="text"
+            id="recipientUsernameInput"
+            name="recipient_username"
+            class="form-control"
+            placeholder="e.g. jordan_cs"
+            required
+            autocomplete="off"
+          >
+        </div>
+        <small class="form-help-text">Enter verified campus username.</small>
+      </div>
+
+      <div class="form-group">
+        <label for="messageContentInput" class="form-label">
+          Message:
+        </label>
+        <textarea
+          id="messageContentInput"
+          name="content"
+          class="form-control modal-textarea"
+          rows="4"
+          placeholder="Type your message here..."
+          required
+        ></textarea>
+      </div>
+
+      <div class="modal-actions-row">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          onclick="document.getElementById('newMsgModal').style.display='none';"
+        >
+          Cancel
+        </button>
+        <button type="submit" class="btn btn-primary">
+          Send Message
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function filterConversations() {
+    const filter = document.getElementById('convoSearchInput').value.toLowerCase().trim();
+    const rows = document.querySelectorAll('#conversationsContainer .conversation-row-item');
+    rows.forEach(row => {
+      const username = row.getAttribute('data-username') || '';
+      if (username.includes(filter)) {
+        row.style.display = 'flex';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+  }
+</script>
+{% endblock %}

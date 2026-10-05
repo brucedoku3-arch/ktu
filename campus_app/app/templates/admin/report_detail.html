@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Report #{{ report.id }} Detail · KTU Safety Command Center{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+  <div class="admin-header">
+    <div class="admin-header-title">
+      <div class="admin-shield-icon">🛡️</div>
+      <div>
+        <h1 class="admin-page-title">Safety Report #{{ report.id }}</h1>
+        <p class="admin-page-subtitle">Detailed content inspection & accountable author tracing.</p>
+      </div>
+    </div>
+    <div>
+      <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline">
+        &larr; Back to Dashboard
+      </a>
+    </div>
+  </div>
+
+  <div class="trace-result-card" style="margin-top: 20px;">
+    <div class="trace-result-header">
+      <div class="trace-badge-group">
+        <span class="trace-status-badge">TARGET: {{ report.target_type|upper }} #{{ report.target_id }}</span>
+        <span class="reason-badge reason-{{ report.reason }}">REASON: {{ report.reason|replace('_', ' ')|upper }}</span>
+        <span class="status-badge status-{{ report.status }}">STATUS: {{ report.status|upper }}</span>
+      </div>
+      <span class="trace-timestamp">{{ report.created_at.strftime('%b %d, %Y · %H:%M') }}</span>
+    </div>
+
+    <div class="trace-grid">
+      <!-- Target Content Column -->
+      <div class="trace-column">
+        <h4 class="trace-col-title">Flagged Content Preview</h4>
+        <div class="trace-content-box">
+          <p class="trace-content-text">{{ target.content_preview or 'No text body' }}</p>
+        </div>
+        <div class="trace-meta-list">
+          <div class="meta-item"><strong>Reporter:</strong> @{{ report.reporter.username if report.reporter else 'Anonymous' }} (ID: {{ report.reporter_id }})</div>
+          <div class="meta-item"><strong>Reporter Details Note:</strong> {{ report.details or 'None' }}</div>
+        </div>
+      </div>
+
+      <!-- Real Author Tracing Column -->
+      <div class="trace-column trace-author-column">
+        <div class="trace-admin-stamp">
+          <span>🔒 ADMIN SAFETY AUDIT ONLY</span>
+        </div>
+        <h4 class="trace-col-title">Underlying Author Identity</h4>
+
+        {% if target.real_author %}
+          <div class="trace-author-card">
+            <div class="author-row">
+              <span class="author-label">KTU Student ID:</span>
+              <span class="author-val font-mono text-bold">{{ target.real_author.student_id }}</span>
+            </div>
+            <div class="author-row">
+              <span class="author-label">User ID (PK):</span>
+              <span class="author-val font-mono">{{ target.real_author.id }}</span>
+            </div>
+            <div class="author-row">
+              <span class="author-label">Handle:</span>
+              <span class="author-val text-bold">@{{ target.real_author.username }}</span>
+            </div>
+            <div class="author-row">
+              <span class="author-label">Institutional Email:</span>
+              <span class="author-val font-mono">{{ target.real_author.email }}</span>
+            </div>
+            <div class="author-row">
+              <span class="author-label">Karma Score:</span>
+              <span class="author-val">{{ target.real_author.karma_score }}</span>
+            </div>
+            <div class="author-row">
+              <span class="author-label">Account Status:</span>
+              <span class="author-val">
+                {% if target.real_author.is_banned %}
+                  <span class="status-badge status-banned">Banned</span>
+                {% elif target.real_author.is_suspended %}
+                  <span class="status-badge status-suspended">Suspended</span>
+                {% else %}
+                  <span class="status-badge status-active">Active</span>
+                {% endif %}
+              </span>
+            </div>
+          </div>
+
+          <!-- Moderation Actions -->
+          <form method="POST" action="{{ url_for('admin.execute_report_action', report_id=report.id) }}" class="trace-action-form" style="margin-top: 16px;">
+            <div class="form-group" style="margin-bottom: 12px;">
+              <label for="reason_note" class="form-label font-sm">Admin Enforcement Reason / Note:</label>
+              <input type="text" name="reason_note" id="reason_note" class="admin-input" placeholder="Optional audit memo...">
+            </div>
+
+            <div class="action-btn-group">
+              <button type="submit" name="action" value="dismiss" class="btn-mod-action btn-dismiss">
+                ✓ Dismiss Report
+              </button>
+              <button type="submit" name="action" value="delete_content" class="btn-mod-action btn-delete">
+                🗑️ Delete Content
+              </button>
+              <button type="submit" name="action" value="suspend_user" class="btn-mod-action btn-suspend">
+                ⏸️ Suspend User (7d)
+              </button>
+              <button type="submit" name="action" value="ban_user" class="btn-mod-action btn-ban">
+                ⛔ Permanently Ban
+              </button>
+            </div>
+          </form>
+        {% else %}
+          <div class="text-muted" style="padding: 20px 0;">Author record not found or already deleted.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

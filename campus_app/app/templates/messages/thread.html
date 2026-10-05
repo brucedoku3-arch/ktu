@@ -1,0 +1,420 @@
+{% extends "base.html" %}
+
+{% block title %}Chat with @{{ target.username }} · KTU Messages{% endblock %}
+
+{% block content %}
+<div class="chat-thread-layout max-w-2xl mx-auto flex flex-col h-[calc(100vh-80px)] md:h-[680px] bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+  
+  <!-- ===================================================================== -->
+  <!-- 1. DIRECT CHAT HEADER WITH PARTNER INFO & BLOCK DROPDOWN              -->
+  <!-- ===================================================================== -->
+  <header class="p-3 sm:px-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2 shrink-0">
+    <div class="flex items-center gap-2.5 min-w-0">
+      <a
+        href="{{ url_for('messages.index') }}"
+        class="p-2 -ml-1 text-slate-500 hover:text-slate-900 rounded-lg cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
+        title="Back to Inbox"
+        aria-label="Back to Inbox"
+      >
+        <span class="text-base font-bold">←</span>
+      </a>
+
+      <!-- Partner Avatar -->
+      <div class="relative shrink-0">
+        {% if target.avatar_url and target.avatar_url != 'default_avatar.png' %}
+          <img
+            src="{{ url_for('static', filename='uploads/' + target.avatar_url) }}"
+            alt="@{{ target.username }}"
+            class="w-10 h-10 rounded-full object-cover border border-slate-200"
+            onerror="this.src='{{ url_for('static', filename='uploads/avatars/default_avatar.png') }}';"
+          >
+        {% else %}
+          <div class="w-10 h-10 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center border border-indigo-700">
+            {{ target.username[:2]|upper }}
+          </div>
+        {% endif %}
+        <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-white"></span>
+      </div>
+
+      <!-- Partner Details -->
+      <div class="min-w-0">
+        <div class="flex items-center gap-1.5">
+          <span class="text-xs font-bold text-slate-900 truncate">
+            @{{ target.username }}
+          </span>
+          <span class="text-[10px] font-mono bg-indigo-50 text-indigo-700 px-1.5 py-0.2 rounded font-semibold truncate">
+            {{ target.student_id|default('KTU Student') }}
+          </span>
+        </div>
+        <div class="flex items-center gap-2 text-[10px] text-slate-500 mt-0.5">
+          <span>{{ target.faculty|default('Koforidua Technical University') }}</span>
+          <span id="socketStatusPill" class="text-emerald-600 font-mono flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span id="socketStatusText">Live</span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Safety & Moderation Actions Dropdown -->
+    <div class="relative">
+      <button
+        type="button"
+        id="safetyMenuBtn"
+        onclick="toggleSafetyDropdown();"
+        class="p-2 text-slate-500 hover:text-slate-800 rounded-lg min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
+        title="Privacy & Moderation"
+        aria-label="Safety menu"
+      >
+        <span class="text-sm">⋮</span>
+      </button>
+
+      <div
+        id="safetyDropdownMenu"
+        class="absolute right-0 top-12 w-48 bg-white border border-slate-200 rounded-xl shadow-lg p-1.5 space-y-1 z-30"
+        style="display: none;"
+      >
+        <form method="POST" action="{{ url_for('messages.block_user', username=target.username) }}">
+          <button
+            type="submit"
+            class="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 rounded-lg font-medium cursor-pointer min-h-[44px] flex items-center gap-2"
+            onclick="return confirm('Block @{{ target.username }}? You will no longer exchange messages.');"
+          >
+            <span>🛡️</span>
+            <span>Block Student</span>
+          </button>
+        </form>
+
+        <a
+          href="{{ url_for('profile.view_profile', username=target.username) }}"
+          class="block px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 rounded-lg min-h-[44px] flex items-center gap-2"
+        >
+          <span>👤</span>
+          <span>View KTU Profile</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===================================================================== -->
+  <!-- 2. SCROLLABLE CHAT BALLOON AREA                                       -->
+  <!-- ===================================================================== -->
+  <main
+    id="chatBalloonsContainer"
+    class="flex-1 p-3 sm:p-4 overflow-y-auto space-y-2.5 bg-slate-50/50"
+  >
+    <!-- Privacy Shield Indicator -->
+    <div class="py-2 text-center">
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 rounded-full text-[10px] text-slate-500 font-mono shadow-2xs">
+        🔒 Verified KTU Student Channel · End-to-End Privacy Enforced
+      </span>
+    </div>
+
+    {% for msg in messages %}
+      {% set is_mine = (msg.sender_id == current_user.id) %}
+      <div class="flex flex-col {{ 'items-end' if is_mine else 'items-start' }}" id="msg-item-{{ msg.id }}">
+        <div
+          class="max-w-[82%] sm:max-w-[75%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed shadow-2xs {{ 'bg-indigo-600 text-white rounded-br-xs' if is_mine else 'bg-white border border-slate-200 text-slate-800 rounded-bl-xs' }}"
+        >
+          <p class="whitespace-pre-wrap break-words">{{ msg.content }}</p>
+        </div>
+        <div class="flex items-center gap-1 mt-1 text-[10px] text-slate-400 font-mono px-1">
+          <time datetime="{{ msg.created_at.isoformat() }}">
+            {{ msg.created_at.strftime('%I:%M %p') }}
+          </time>
+          {% if is_mine %}
+            <span class="text-indigo-600 font-bold">✓</span>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </main>
+
+  <!-- ===================================================================== -->
+  <!-- 3. MOBILE BOTTOM INPUT STICKY DOCK                                    -->
+  <!-- ===================================================================== -->
+  <footer class="p-2 sm:p-3 bg-white border-t border-slate-200 shrink-0">
+    <form
+      id="directMessageForm"
+      onsubmit="handleMessageSubmit(event);"
+      class="flex items-end gap-2"
+    >
+      <div class="flex-1 relative">
+        <textarea
+          id="messageBodyInput"
+          name="body"
+          rows="1"
+          required
+          placeholder="Message @{{ target.username }}..."
+          class="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-300 rounded-2xl focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white resize-none min-h-[44px] max-h-32 leading-relaxed"
+          oninput="autoResizeTextarea(this);"
+          onkeydown="handleTextareaKeydown(event);"
+        ></textarea>
+      </div>
+
+      <button
+        type="submit"
+        id="btnSendMessage"
+        class="inline-flex items-center justify-center w-11 h-11 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-2xl cursor-pointer shadow-xs shrink-0 transition-all min-h-[44px] min-w-[44px]"
+        title="Send Message"
+        aria-label="Send Message"
+      >
+        <span class="text-sm font-bold">➤</span>
+      </button>
+    </form>
+  </footer>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- Load Socket.IO client library from CDN -->
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+/**
+ * Real-Time Peer-to-Peer Messaging Engine:
+ * - Flask-SocketIO bidirectional events with Room pairing (chat_<min_id>_<max_id>)
+ * - Graceful REST polling fallback if SocketIO transport is interrupted
+ * - Instant DOM injection and smooth auto-scroll to bottom
+ */
+const CURRENT_USER_ID = {{ current_user.id }};
+const TARGET_USER_ID = {{ target.id }};
+const TARGET_USERNAME = "{{ target.username }}";
+const CHAT_ROOM = "{{ chat_room }}";
+const SEND_URL = "{{ url_for('messages.send_direct_message', username=target.username) }}";
+
+const container = document.getElementById('chatBalloonsContainer');
+const statusPill = document.getElementById('socketStatusPill');
+const statusText = document.getElementById('socketStatusText');
+let socket = null;
+let isSocketConnected = false;
+
+// 1. Auto-scroll chat balloon viewport
+function scrollToBottom(smooth = true) {
+  if (!container) return;
+  container.scrollTo({
+    top: container.scrollHeight,
+    behavior: smooth ? 'smooth' : 'auto'
+  });
+}
+
+// 2. Initialize Hybrid SocketIO + REST Polling Engine
+let lastSeenMessageId = 0;
+let pollingInterval = null;
+
+// Determine maximum message ID present on initial page load
+document.querySelectorAll('[id^="msg-item-"]').forEach(el => {
+  const idNum = parseInt(el.id.replace('msg-item-', ''));
+  if (!isNaN(idNum) && idNum > lastSeenMessageId) {
+    lastSeenMessageId = idNum;
+  }
+});
+
+function startRestPolling() {
+  if (pollingInterval) return;
+  if (statusText) statusText.textContent = 'REST Polling (3s)';
+  if (statusPill) statusPill.className = 'text-amber-600 font-mono flex items-center gap-1';
+
+  pollingInterval = setInterval(async () => {
+    try {
+      const updatesUrl = "{{ url_for('messages.get_updates', username=target.username) }}?since=" + lastSeenMessageId;
+      const resp = await fetch(updatesUrl, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+      });
+      if (!resp.ok) return;
+      const data = await resp.json();
+      if (data.status === 'success' && Array.isArray(data.messages)) {
+        data.messages.forEach(msg => {
+          if (msg.id > lastSeenMessageId) {
+            lastSeenMessageId = msg.id;
+          }
+          appendMessageToThread(msg);
+        });
+        if (data.messages.length > 0) {
+          scrollToBottom(true);
+        }
+      }
+    } catch (e) {
+      console.warn('REST polling update error', e);
+    }
+  }, 3000);
+}
+
+function stopRestPolling() {
+  if (pollingInterval) {
+    clearInterval(pollingInterval);
+    pollingInterval = null;
+  }
+}
+
+function initSocketIO() {
+  let socketConnectedInTime = false;
+
+  // 3-second watchdog timer: if SocketIO fails or is delayed, switch to REST polling
+  const fallbackWatchdog = setTimeout(() => {
+    if (!socketConnectedInTime) {
+      console.info('SocketIO not connected within 3s. Activating REST polling fallback.');
+      startRestPolling();
+    }
+  }, 3000);
+
+  try {
+    socket = io({
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 4,
+      timeout: 3000
+    });
+
+    socket.on('connect', () => {
+      socketConnectedInTime = true;
+      isSocketConnected = true;
+      clearTimeout(fallbackWatchdog);
+      stopRestPolling();
+      if (statusText) statusText.textContent = 'Live Socket';
+      if (statusPill) statusPill.className = 'text-emerald-600 font-mono flex items-center gap-1';
+
+      // Join chat room
+      socket.emit('join_chat', {
+        partner_id: TARGET_USER_ID,
+        recipient_id: TARGET_USER_ID
+      });
+    });
+
+    socket.on('disconnect', () => {
+      isSocketConnected = false;
+      startRestPolling();
+    });
+
+    socket.on('connect_error', () => {
+      isSocketConnected = false;
+      startRestPolling();
+    });
+
+    // Listen for new direct peer messages
+    socket.on('new_direct_message', (payload) => {
+      if (payload.id && payload.id > lastSeenMessageId) {
+        lastSeenMessageId = payload.id;
+      }
+      appendMessageToThread(payload);
+      scrollToBottom(true);
+    });
+
+    socket.on('chat_restricted', (err) => {
+      alert(err.message || 'You cannot message this user due to privacy preferences.');
+    });
+
+  } catch (e) {
+    console.warn('SocketIO failed to initialize. Activating REST polling.', e);
+    isSocketConnected = false;
+    startRestPolling();
+  }
+}
+
+// 3. Append balloon to thread DOM
+function appendMessageToThread(msg) {
+  const isMine = (parseInt(msg.sender_id) === CURRENT_USER_ID);
+  
+  // Prevent duplicate rendering
+  if (msg.id && document.getElementById('msg-item-' + msg.id)) {
+    return;
+  }
+
+  const wrapper = document.createElement('div');
+  wrapper.className = `flex flex-col ${isMine ? 'items-end' : 'items-start'} animate-in fade-in`;
+  if (msg.id) wrapper.id = 'msg-item-' + msg.id;
+
+  const bubble = document.createElement('div');
+  bubble.className = `max-w-[82%] sm:max-w-[75%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed shadow-2xs ${
+    isMine
+      ? 'bg-indigo-600 text-white rounded-br-xs'
+      : 'bg-white border border-slate-200 text-slate-800 rounded-bl-xs'
+  }`;
+
+  const textElem = document.createElement('p');
+  textElem.className = 'whitespace-pre-wrap break-words';
+  textElem.textContent = msg.body || msg.content || '';
+  bubble.appendChild(textElem);
+
+  const meta = document.createElement('div');
+  meta.className = 'flex items-center gap-1 mt-1 text-[10px] text-slate-400 font-mono px-1';
+  meta.innerHTML = `<time>${msg.created_at || 'Just now'}</time>${isMine ? '<span class="text-indigo-600 font-bold">✓</span>' : ''}`;
+
+  wrapper.appendChild(bubble);
+  wrapper.appendChild(meta);
+  container.appendChild(wrapper);
+}
+
+// 4. Handle Message Form Submission
+async function handleMessageSubmit(e) {
+  e.preventDefault();
+  const input = document.getElementById('messageBodyInput');
+  const bodyText = (input.value || '').trim();
+  if (!bodyText) return;
+
+  input.value = '';
+  autoResizeTextarea(input);
+
+  // If SocketIO is connected, emit real-time event
+  if (isSocketConnected && socket) {
+    socket.emit('send_direct_message', {
+      recipient_id: TARGET_USER_ID,
+      body: bodyText
+    });
+  } else {
+    // REST AJAX Fallback
+    try {
+      const resp = await fetch(SEND_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ body: bodyText })
+      });
+      const data = await resp.json();
+      if (data.status === 'success' && data.message) {
+        appendMessageToThread(data.message);
+        scrollToBottom(true);
+      } else if (data.message) {
+        alert(data.message);
+      }
+    } catch (err) {
+      console.error('REST message send failed', err);
+    }
+  }
+}
+
+// 5. Utility: auto resize textarea
+function autoResizeTextarea(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+function handleTextareaKeydown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    document.getElementById('directMessageForm').dispatchEvent(new Event('submit'));
+  }
+}
+
+function toggleSafetyDropdown() {
+  const menu = document.getElementById('safetyDropdownMenu');
+  if (!menu) return;
+  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+}
+
+// Close safety dropdown on outside click
+document.addEventListener('click', (e) => {
+  const btn = document.getElementById('safetyMenuBtn');
+  const menu = document.getElementById('safetyDropdownMenu');
+  if (menu && btn && !btn.contains(e.target) && !menu.contains(e.target)) {
+    menu.style.display = 'none';
+  }
+});
+
+// Initial boot
+window.addEventListener('DOMContentLoaded', () => {
+  scrollToBottom(false);
+  initSocketIO();
+});
+</script>
+{% endblock %}

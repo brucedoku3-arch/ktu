@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block title %}Chat with @{{ peer.username }} · CampusSocial{% endblock %}
+
+{% block content %}
+<div class="chat-thread-layout">
+  <!-- Conversation Header Bar -->
+  <header class="chat-header-bar">
+    <div class="chat-header-left">
+      <a href="{{ url_for('messaging.inbox') }}" class="btn-back-inbox" title="Back to Inbox">
+        ←
+      </a>
+
+      <a href="{{ url_for('profile.view_profile', username=peer.username) }}" class="chat-peer-profile-link">
+        <div class="chat-peer-avatar-wrapper">
+          {% if peer.avatar_url and peer.avatar_url != 'default_avatar.png' %}
+            <img
+              src="{{ url_for('static', filename='uploads/' + peer.avatar_url) }}"
+              alt="@{{ peer.username }}"
+              class="chat-peer-avatar-img"
+              onerror="this.src='{{ url_for('static', filename='uploads/avatars/default_avatar.png') }}';"
+            >
+          {% else %}
+            <div class="chat-peer-avatar-fallback">
+              {{ peer.username[:2]|upper }}
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="chat-peer-info-col">
+          <div class="chat-peer-name-line">
+            <span class="chat-peer-username">@{{ peer.username }}</span>
+            {% if peer.is_admin %}
+              <span class="admin-badge-mini">Admin</span>
+            {% endif %}
+          </div>
+          <span class="chat-peer-status-tag">Verified Campus Student · {{ peer.student_id }}</span>
+        </div>
+      </a>
+    </div>
+
+    <div class="chat-header-right">
+      <a href="{{ url_for('profile.view_profile', username=peer.username) }}" class="btn btn-secondary btn-sm">
+        View Profile
+      </a>
+    </div>
+  </header>
+
+  <!-- Chat Messages Stream -->
+  <main class="chat-messages-container" id="chatMessagesContainer">
+    {% set last_msg_id = 0 %}
+    {% if messages and messages|length > 0 %}
+      {% for msg in messages %}
+        {% set is_mine = (msg.sender_id == current_user.id) %}
+        <div
+          class="chat-message-row {% if is_mine %}is-mine{% else %}is-peer{% endif %}"
+          id="msg-node-{{ msg.id }}"
+          data-message-id="{{ msg.id }}"
+        >
+          <div class="message-bubble-wrapper">
+            <div class="message-bubble {% if is_mine %}bubble-sent{% else %}bubble-received{% endif %}">
+              <p class="message-text-content">{{ msg.content }}</p>
+              <div class="message-meta-info">
+                <time class="message-time">
+                  {{ msg.created_at.strftime('%I:%M %p') }}
+                </time>
+                {% if is_mine %}
+                  <span class="read-receipt-mark" title="{% if msg.is_read %}Read{% else %}Delivered{% endif %}">
+                    {% if msg.is_read %}
+                      <span class="check-read">✓✓</span>
+                    {% else %}
+                      <span class="check-sent">✓</span>
+                    {% endif %}
+                  </span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="chat-start-notice" id="chatStartNotice">
+        <div class="start-icon">👋</div>
+        <h4>Say hello to @{{ peer.username }}!</h4>
+        <p>This is the beginning of your verified campus direct conversation.</p>
+      </div>
+    {% endif %}
+  </main>
+
+  <!-- Sticky Chat Message Composer -->
+  <footer class="chat-composer-bar">
+    <form
+      id="chatComposerForm"
+      method="POST"
+      action="{{ url_for('messaging.send_message') }}"
+      class="chat-composer-form"
+      onsubmit="submitChatMessage(event)"
+    >
+      <input type="hidden" name="recipient_id" value="{{ peer.id }}">
+      <input type="hidden" name="recipient_username" value="{{ peer.username }}">
+
+      <div class="composer-input-wrapper">
+        <input
+          type="text"
+          id="chatMessageInput"
+          name="content"
+          class="chat-input-field"
+          placeholder="Message @{{ peer.username }}..."
+          required
+          autocomplete="off"
+        >
+        <button
+          type="submit"
+          id="btnSendMessage"
+          class="btn btn-primary btn-chat-send"
+          aria-label="Send message"
+        >
+          <span>Send</span>
+          <span class="send-arrow">➔</span>
+        </button>
+      </div>
+    </form>
+  </footer>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  let latestMessageId = 0;
+  const peerUsername = "{{ peer.username }}";
+  const messagesContainer = document.getElementById('chatMessagesContainer');
+
+  // Find latest loaded message ID
+  function updateLatestMessageId() {
+    const messageRows = document.querySelectorAll('.chat-message-row[data-message-id]');
+    if (messageRows.length > 0) {
+      const lastRow = messageRows[messageRows.length - 1];
+      latestMessageId = parseInt(lastRow.getAttribute('data-message-id') || '0', 10);
+    }
+  }
+
+  function scrollToBottom() {
+    if (messagesContainer) {
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+  }
+
+  // Scroll to bottom on initial view
+  updateLatestMessageId();
+  scrollToBottom();
+
+  // Send message via AJAX for instant response without jump
+  async function submitChatMessage(e) {
+    e.preventDefault();
+    const input = document.getElementById('chatMessageInput');
+    const content = input.value.trim();
+    if (!content) return;
+
+    input.value = '';
+    input.focus();
+
+    // Remove start notice if present
+    const startNotice = document.getElementById('chatStartNotice');
+    if (startNotice) startNotice.remove();
+
+    try {
+      const response = await fetch("{{ url_for('messaging.send_message') }}", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({
+          recipient_id: {{ peer.id }},
+          recipient_username: peerUsername,
+          content: content
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.message) {
+          appendMessageNode(data.message);
+          latestMessageId = Math.max(latestMessageId, data.message.id);
+        }
+      } else {
+        const err = await response.json().catch(() => ({}));
+        alert(err.message || 'Failed to send message. Please try again.');
+      }
+    } catch (err) {
+      console.error("Failed to send message:", err);
+    }
+  }
+
+  function appendMessageNode(msg) {
+    const isMine = msg.is_mine;
+    const row = document.createElement('div');
+    row.className = `chat-message-row ${isMine ? 'is-mine' : 'is-peer'}`;
+    row.setAttribute('data-message-id', msg.id);
+    row.id = `msg-node-${msg.id}`;
+
+    const receipt = isMine
+      ? `<span class="read-receipt-mark"><span class="${msg.is_read ? 'check-read' : 'check-sent'}">${msg.is_read ? '✓✓' : '✓'}</span></span>`
+      : '';
+
+    const formattedTime = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    row.innerHTML = `
+      <div class="message-bubble-wrapper">
+        <div class="message-bubble ${isMine ? 'bubble-sent' : 'bubble-received'}">
+          <p class="message-text-content">${escapeHTML(msg.content)}</p>
+          <div class="message-meta-info">
+            <time class="message-time">${formattedTime}</time>
+            ${receipt}
+          </div>
+        </div>
+      </div>
+    `;
+
+    messagesContainer.appendChild(row);
+    scrollToBottom();
+  }
+
+  function escapeHTML(str) {
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  // Periodic polling for incoming peer messages (every 3.5 seconds)
+  setInterval(async () => {
+    try {
+      const res = await fetch(`{{ url_for('messaging.api_poll_thread', username=peer.username) }}?after=${latestMessageId}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.messages && data.messages.length > 0) {
+        data.messages.forEach(msg => {
+          if (!document.getElementById(`msg-node-${msg.id}`)) {
+            appendMessageNode(msg);
+            latestMessageId = Math.max(latestMessageId, msg.id);
+          }
+        });
+      }
+    } catch (e) {
+      // Ignore polling errors in background
+    }
+  }, 3500);
+</script>
+{% endblock %}

@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Brainrot & Meme Vault · Campus Culture{% endblock %}
+
+{% block content %}
+<div class="brainrot-layout">
+  <!-- 1. Header Banner -->
+  <section class="brainrot-header-card">
+    <div class="brainrot-title-row">
+      <div class="brainrot-heading-group">
+        <h1 class="brainrot-title">
+          <span>🧠</span> Campus Brainrot & Meme Vault
+        </h1>
+        <p class="brainrot-subtitle">
+          The curated repository of viral KTU student in-jokes, hall rivalries, and exam season coping mechanisms.
+        </p>
+      </div>
+
+      <div class="brainrot-header-actions">
+        <a href="{{ url_for('culture.aux_battle') }}" class="btn btn-secondary btn-aux-nav">
+          🎵 Aux Battles
+        </a>
+        {% if current_user.is_authenticated %}
+          <a href="{{ url_for('feed.create_post') }}" class="btn btn-primary">
+            + Drop Meme
+          </a>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- 2. Viral Tag Selector Pills -->
+    <nav class="brainrot-tags-bar" aria-label="Campus Meme Tags">
+      {% for tag in popular_tags %}
+        <a
+          href="{{ url_for('culture.brainrot_hub', tag=tag.slug) }}"
+          class="brainrot-tag-pill {% if active_tag == tag.slug %}active{% endif %}"
+        >
+          <span class="tag-hash">{{ tag.name }}</span>
+          {% if tag.count > 0 %}
+            <span class="tag-badge-count">{{ tag.count }}</span>
+          {% endif %}
+        </a>
+      {% endfor %}
+    </nav>
+  </section>
+
+  <!-- 3. Memes & Media Vault Grid (Responsive Masonry/Grid) -->
+  <section class="brainrot-vault-grid">
+    {% if posts and posts|length > 0 %}
+      <div class="vault-columns">
+        {% for post in posts %}
+          <article class="vault-item-card" id="vault-post-{{ post.id }}">
+            <!-- Post Header -->
+            <div class="vault-card-header">
+              <a href="{{ url_for('profile.view_profile', username=post.author.username) }}" class="vault-author-link">
+                {% if post.author.avatar_url and post.author.avatar_url != 'default_avatar.png' %}
+                  <img
+                    src="{{ url_for('static', filename='uploads/' + post.author.avatar_url) }}"
+                    alt="@{{ post.author.username }}"
+                    class="vault-avatar"
+                  >
+                {% else %}
+                  <span class="vault-avatar-fallback">{{ post.author.username[:2]|upper }}</span>
+                {% endif %}
+                <div class="vault-author-meta">
+                  <span class="vault-username">@{{ post.author.username }}</span>
+                  <time class="vault-timestamp">{{ post.created_at.strftime('%b %d') }}</time>
+                </div>
+              </a>
+
+              <span class="vault-karma-tag">
+                🔥 {{ post.score }} vibes
+              </span>
+            </div>
+
+            <!-- Media Preview -->
+            {% if post.image_url %}
+              <div class="vault-media-container">
+                <img
+                  src="{{ url_for('static', filename='uploads/' + post.image_url) }}"
+                  alt="{{ post.caption }}"
+                  class="vault-media-img"
+                  loading="lazy"
+                  onerror="this.style.display='none';"
+                >
+              </div>
+            {% endif %}
+
+            <!-- Caption & Campus Tags -->
+            <div class="vault-card-body">
+              <p class="vault-caption-text">{{ post.caption }}</p>
+            </div>
+
+            <!-- Footer: Quick share -->
+            <div class="vault-card-footer">
+              <span class="vault-category-pill">#{{ post.category }}</span>
+              <button
+                type="button"
+                class="btn-vault-share"
+                onclick="copyPostLink('{{ url_for('feed.index', _external=True) }}#post-card-{{ post.id }}', this)"
+              >
+                Share
+              </button>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-vault-card">
+        <div class="empty-vault-icon">📦</div>
+        <h3 class="empty-vault-title">No memes found for {{ active_tag }}</h3>
+        <p class="empty-vault-desc">
+          Be the pioneer to tag your meme with <code>{{ active_tag }}</code> and cement your spot in KTU history.
+        </p>
+        {% if current_user.is_authenticated %}
+          <a href="{{ url_for('feed.create_post') }}" class="btn btn-primary">
+            Post {{ active_tag }} Meme
+          </a>
+        {% endif %}
+      </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

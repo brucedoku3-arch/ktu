@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}Create Campus Post · CampusSocial{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-card create-post-card">
+    <div class="auth-header">
+      <h1 class="auth-title">Share to Campus Feed</h1>
+      <p class="auth-subtitle">Post a verified campus meme or outfit check (OOTD) to the student stream.</p>
+    </div>
+
+    <form
+      method="POST"
+      action="{{ url_for('feed.create_post') }}"
+      enctype="multipart/form-data"
+      class="auth-form"
+      id="createPostForm"
+    >
+      <!-- Category Selector Segmented Control -->
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <div class="category-radio-group">
+          <label class="category-radio-card">
+            <input
+              type="radio"
+              name="category"
+              value="memes"
+              checked
+              class="sr-only category-radio-input"
+            >
+            <div class="radio-card-content">
+              <span class="category-emoji">🎭</span>
+              <span class="category-name">Campus Meme</span>
+              <span class="category-desc">Relatable university humor & finals reactions</span>
+            </div>
+          </label>
+
+          <label class="category-radio-card">
+            <input
+              type="radio"
+              name="category"
+              value="fit_checks"
+              class="sr-only category-radio-input"
+            >
+            <div class="radio-card-content">
+              <span class="category-emoji">✨</span>
+              <span class="category-name">Fit Check (OOTD)</span>
+              <span class="category-desc">Campus style, thrift finds, & quad fits</span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Live Image Dropzone -->
+      <div class="form-group">
+        <label class="form-label">Media Asset (PNG, JPG, WEBP)</label>
+        <div
+          id="dropzone"
+          class="image-dropzone"
+          onclick="document.getElementById('imageInput').click();"
+        >
+          <input
+            type="file"
+            id="imageInput"
+            name="image"
+            accept=".png, .jpg, .jpeg, .webp"
+            class="sr-only"
+            required
+          >
+          <div id="dropzonePrompt" class="dropzone-prompt">
+            <div class="dropzone-icon">📷</div>
+            <div class="dropzone-main-text">Click or drag image here</div>
+            <div class="dropzone-sub-text">Max 16 MB. EXIF location data automatically stripped.</div>
+          </div>
+          <div id="previewContainer" class="dropzone-preview-container" style="display: none;">
+            <img id="imagePreview" class="dropzone-preview-img" alt="Preview">
+            <button
+              type="button"
+              id="clearImageBtn"
+              class="btn-clear-preview"
+              title="Change Image"
+            >
+              Change Image
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Title / Caption Input -->
+      <div class="form-group">
+        <div class="label-row">
+          <label for="title" class="form-label">Caption or Title</label>
+          <span id="captionCharCount" class="char-counter">0 / 280</span>
+        </div>
+        <textarea
+          id="title"
+          name="title"
+          rows="3"
+          maxlength="280"
+          placeholder="Write a witty campus caption, location callout, or fit breakdown..."
+          class="form-textarea"
+          required
+        ></textarea>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="form-actions-row">
+        <a href="{{ url_for('feed.index') }}" class="btn btn-secondary">
+          Cancel
+        </a>
+        <button type="submit" class="btn btn-primary" id="submitPostBtn">
+          Publish to Feed
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  (function() {
+    const input = document.getElementById('imageInput');
+    const dropzone = document.getElementById('dropzone');
+    const prompt = document.getElementById('dropzonePrompt');
+    const previewContainer = document.getElementById('previewContainer');
+    const previewImg = document.getElementById('imagePreview');
+    const clearBtn = document.getElementById('clearImageBtn');
+    const titleArea = document.getElementById('title');
+    const counter = document.getElementById('captionCharCount');
+
+    // Live preview
+    function handleFile(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        previewImg.src = e.target.result;
+        prompt.style.display = 'none';
+        previewContainer.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    if (input) {
+      input.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+          handleFile(this.files[0]);
+        }
+      });
+    }
+
+    if (clearBtn) {
+      clearBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        input.value = '';
+        previewImg.src = '';
+        previewContainer.style.display = 'none';
+        prompt.style.display = 'flex';
+      });
+    }
+
+    // Drag and drop handlers
+    if (dropzone) {
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          dropzone.classList.add('drag-over');
+        });
+      });
+
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          dropzone.classList.remove('drag-over');
+        });
+      });
+
+      dropzone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt && dt.files;
+        if (files && files.length > 0) {
+          input.files = files;
+          handleFile(files[0]);
+        }
+      });
+    }
+
+    // Character counter
+    if (titleArea && counter) {
+      titleArea.addEventListener('input', function() {
+        counter.textContent = `${this.value.length} / 280`;
+      });
+    }
+  })();
+</script>
+{% endblock %}

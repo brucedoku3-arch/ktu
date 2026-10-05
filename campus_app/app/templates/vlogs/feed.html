@@ -1,0 +1,411 @@
+{% extends "base.html" %}
+
+{% block title %}Campus Micro-Vlogs · 30s Stories{% endblock %}
+
+{% block content %}
+<div class="vlogs-page-container">
+  <!-- Top Bar Controls -->
+  <div class="vlogs-top-bar">
+    <div class="vlogs-top-left">
+      <span class="vlogs-live-badge">● CAMPUS VLOGS</span>
+      <div class="vlogs-sort-pills">
+        <a
+          href="{{ url_for('vlogs.vlog_feed', sort='recent') }}"
+          class="vlog-sort-pill {% if sort != 'popular' %}active{% endif %}"
+        >
+          Recent
+        </a>
+        <a
+          href="{{ url_for('vlogs.vlog_feed', sort='popular') }}"
+          class="vlog-sort-pill {% if sort == 'popular' %}active{% endif %}"
+        >
+          Popular 🔥
+        </a>
+      </div>
+    </div>
+
+    <div class="vlogs-top-right">
+      {% if current_user.is_authenticated %}
+        <a href="{{ url_for('vlogs.create_vlog') }}" class="btn-create-vlog">
+          <span>+ Upload Vlog</span>
+        </a>
+      {% else %}
+        <a href="{{ url_for('auth.login') }}" class="btn-create-vlog">
+          <span>Log In to Post</span>
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Vertical Snap-Scroll Reel Feed Container -->
+  {% if vlogs and vlogs|length > 0 %}
+    <div class="vlog-snap-feed" id="vlogSnapFeed" tabindex="0">
+      {% for vlog in vlogs %}
+        {% set user_vote = user_votes_map.get(vlog.id, 0) %}
+        {% set is_owner = current_user.is_authenticated and (vlog.user_id == current_user.id or current_user.is_admin) %}
+
+        <article
+          class="vlog-card-item"
+          id="vlog-card-{{ vlog.id }}"
+          data-vlog-id="{{ vlog.id }}"
+        >
+          <!-- Video Element Container -->
+          <div class="vlog-media-wrapper">
+            <video
+              class="vlog-video-player"
+              src="{{ url_for('static', filename='uploads/' + vlog.video_url) }}"
+              {% if vlog.thumbnail_url %}poster="{{ url_for('static', filename='uploads/' + vlog.thumbnail_url) }}"{% endif %}
+              playsinline
+              loop
+              preload="metadata"
+            ></video>
+
+            <!-- Video Play/Pause Overlay Indicator -->
+            <div class="vlog-play-state-overlay">
+              <span class="state-icon">▶</span>
+            </div>
+
+            <!-- Video Progress Bar (Top) -->
+            <div class="vlog-progress-bar-container">
+              <div class="vlog-progress-bar-fill"></div>
+            </div>
+          </div>
+
+          <!-- Bottom Left Overlay: Author & Caption -->
+          <div class="vlog-bottom-overlay">
+            <div class="vlog-author-row">
+              <a
+                href="{{ url_for('profile.view_profile', username=vlog.author.username) }}"
+                class="vlog-author-info"
+              >
+                {% if vlog.author.avatar_url and vlog.author.avatar_url != 'default_avatar.png' %}
+                  <img
+                    src="{{ url_for('static', filename='uploads/' + vlog.author.avatar_url) }}"
+                    alt="@{{ vlog.author.username }}"
+                    class="vlog-author-avatar-img"
+                  >
+                {% else %}
+                  <span class="vlog-author-avatar-fallback">
+                    {{ vlog.author.username[:2]|upper }}
+                  </span>
+                {% endif %}
+                <div class="vlog-author-text">
+                  <span class="vlog-author-handle">@{{ vlog.author.username }}</span>
+                  <span class="vlog-author-id-pill">{{ vlog.author.student_id|default('KTU Student') }}</span>
+                </div>
+              </a>
+              <time class="vlog-timestamp">{{ vlog.created_at.strftime('%b %d') }}</time>
+            </div>
+
+            {% if vlog.caption %}
+              <p class="vlog-caption">{{ vlog.caption }}</p>
+            {% endif %}
+          </div>
+
+          <!-- Right Overlay Action Bar -->
+          <div class="vlog-action-rail">
+            <!-- Upvote Button -->
+            <button
+              type="button"
+              class="vlog-rail-btn btn-vlog-upvote {% if user_vote == 1 %}active{% endif %}"
+              onclick="handleVlogVote({{ vlog.id }}, 1)"
+              title="Vibe Upvote (+1)"
+            >
+              <span class="rail-icon">🔥</span>
+              <span class="rail-count" id="vlog-net-score-{{ vlog.id }}">{{ vlog.net_votes }}</span>
+            </button>
+
+            <!-- Downvote Button -->
+            <button
+              type="button"
+              class="vlog-rail-btn btn-vlog-downvote {% if user_vote == -1 %}active{% endif %}"
+              onclick="handleVlogVote({{ vlog.id }}, -1)"
+              title="Downvote (-1)"
+            >
+              <span class="rail-icon">❄️</span>
+              <span class="rail-label">Down</span>
+            </button>
+
+            <!-- Views Counter -->
+            <div class="vlog-rail-btn non-interactive" title="Total Views">
+              <span class="rail-icon">👁️</span>
+              <span class="rail-count" id="vlog-views-count-{{ vlog.id }}">{{ vlog.views_count }}</span>
+            </div>
+
+            <!-- Direct Message / Profile Author -->
+            <a
+              href="{{ url_for('profile.view_profile', username=vlog.author.username) }}"
+              class="vlog-rail-btn"
+              title="View Student Profile"
+            >
+              <span class="rail-icon">💬</span>
+              <span class="rail-label">Chat</span>
+            </a>
+
+            <!-- Owner Delete Action -->
+            {% if is_owner %}
+              <form
+                method="POST"
+                action="{{ url_for('vlogs.delete_vlog', vlog_id=vlog.id) }}"
+                onsubmit="return confirm('Delete this vlog from campus feed?');"
+              >
+                <button type="submit" class="vlog-rail-btn btn-delete-vlog" title="Delete Vlog">
+                  <span class="rail-icon">🗑️</span>
+                  <span class="rail-label">Del</span>
+                </button>
+              </form>
+            {% endif %}
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+
+    <!-- Feed Navigation Helper Hints (Desktop / Large Viewports) -->
+    <div class="vlogs-nav-hints">
+      <span>Use <kbd>↑</kbd> <kbd>↓</kbd> or swipe vertically to navigate vlogs</span>
+      <span>Click video to pause/play</span>
+    </div>
+
+  {% else %}
+    <div class="vlogs-empty-state">
+      <span class="empty-icon">📹</span>
+      <h3>No campus micro-vlogs yet!</h3>
+      <p>Be the first student to upload a 30-second snapshot of your campus day.</p>
+      {% if current_user.is_authenticated %}
+        <a href="{{ url_for('vlogs.create_vlog') }}" class="btn btn-primary">
+          + Upload 30s Vlog
+        </a>
+      {% else %}
+        <a href="{{ url_for('auth.login') }}" class="btn btn-primary">
+          Log In to Post
+        </a>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+/**
+ * TikTok-Style Vertical Snap Scroll Engine:
+ * - IntersectionObserver to autoplay active video and pause non-active videos.
+ * - Progress bar syncing.
+ * - View analytics trigger.
+ * - AJAX Voting (+1 / -1 / retract).
+ * - Keyboard (Up/Down) & touch swipe gestures.
+ */
+document.addEventListener('DOMContentLoaded', () => {
+  const feed = document.getElementById('vlogSnapFeed');
+  if (!feed) return;
+
+  const cards = Array.from(feed.querySelectorAll('.vlog-card-item'));
+  const viewedVlogIds = new Set();
+
+  // 1. Intersection Observer for playback control and view counts
+  const observerOptions = {
+    root: feed,
+    threshold: 0.65
+  };
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      const card = entry.target;
+      const video = card.querySelector('video');
+      const vlogId = card.getAttribute('data-vlog-id');
+      const fillBar = card.querySelector('.vlog-progress-bar-fill');
+
+      if (entry.isIntersecting) {
+        card.classList.add('is-active-vlog');
+        if (video) {
+          video.currentTime = 0;
+          const playPromise = video.play();
+          if (playPromise !== undefined) {
+            playPromise.catch(() => {
+              // Autoplay policy fallback: mute and retry
+              video.muted = true;
+              video.play().catch(() => {});
+            });
+          }
+        }
+
+        // Trigger view count increment once per card session
+        if (vlogId && !viewedVlogIds.has(vlogId)) {
+          viewedVlogIds.add(vlogId);
+          fetch(`/vlogs/${vlogId}/view`, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+          }).then(res => res.json()).then(data => {
+            if (data.status === 'success') {
+              const viewSpan = document.getElementById(`vlog-views-count-${vlogId}`);
+              if (viewSpan) viewSpan.textContent = data.views_count;
+            }
+          }).catch(() => {});
+        }
+      } else {
+        card.classList.remove('is-active-vlog');
+        if (video) {
+          video.pause();
+        }
+        if (fillBar) fillBar.style.width = '0%';
+      }
+    });
+  }, observerOptions);
+
+  cards.forEach(card => observer.observe(card));
+
+  // 2. Video Click to Pause / Play & Progress Tracking
+  cards.forEach(card => {
+    const video = card.querySelector('video');
+    const fillBar = card.querySelector('.vlog-progress-bar-fill');
+    const overlay = card.querySelector('.vlog-play-state-overlay');
+
+    if (video) {
+      video.addEventListener('timeupdate', () => {
+        if (video.duration && fillBar) {
+          const pct = (video.currentTime / video.duration) * 100;
+          fillBar.style.width = `${pct}%`;
+        }
+      });
+
+      video.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (video.paused) {
+          video.play();
+          if (overlay) {
+            overlay.classList.remove('show-pause');
+            overlay.classList.add('show-play');
+            setTimeout(() => overlay.classList.remove('show-play'), 400);
+          }
+        } else {
+          video.pause();
+          if (overlay) {
+            overlay.classList.remove('show-play');
+            overlay.classList.add('show-pause');
+          }
+        }
+      });
+    }
+  });
+
+  // 3. Keyboard Arrow Navigation (Up / Down)
+  feed.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown' || e.key === 'j') {
+      e.preventDefault();
+      scrollVlogBy(1);
+    } else if (e.key === 'ArrowUp' || e.key === 'k') {
+      e.preventDefault();
+      scrollVlogBy(-1);
+    } else if (e.key === ' ' || e.key === 'Spacebar') {
+      e.preventDefault();
+      const activeCard = feed.querySelector('.vlog-card-item.is-active-vlog');
+      if (activeCard) {
+        const v = activeCard.querySelector('video');
+        if (v) v.paused ? v.play() : v.pause();
+      }
+    }
+  });
+
+  function scrollVlogBy(delta) {
+    const activeIndex = cards.findIndex(c => c.classList.contains('is-active-vlog'));
+    const targetIndex = activeIndex === -1 ? 0 : Math.min(Math.max(0, activeIndex + delta), cards.length - 1);
+    if (cards[targetIndex]) {
+      cards[targetIndex].scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+
+  // 4. Touch swipe gesture detection
+  let touchStartY = 0;
+  feed.addEventListener('touchstart', (e) => {
+    touchStartY = e.changedTouches[0].screenY;
+  }, { passive: true });
+
+  feed.addEventListener('touchend', (e) => {
+    const touchEndY = e.changedTouches[0].screenY;
+    const diff = touchStartY - touchEndY;
+    if (Math.abs(diff) > 55) {
+      if (diff > 0) scrollVlogBy(1);  // Swipe up -> Next
+      else scrollVlogBy(-1);         // Swipe down -> Previous
+    }
+  }, { passive: true });
+});
+
+/**
+ * Optimistic AJAX Voting for Vlogs (+1 / -1 / retract)
+ */
+async function handleVlogVote(vlogId, requestedVote) {
+  {% if not current_user.is_authenticated %}
+    window.location.href = "{{ url_for('auth.login') }}";
+    return;
+  {% endif %}
+
+  const card = document.getElementById(`vlog-card-${vlogId}`);
+  if (!card) return;
+
+  const upBtn = card.querySelector('.btn-vlog-upvote');
+  const downBtn = card.querySelector('.btn-vlog-downvote');
+  const scoreSpan = document.getElementById(`vlog-net-score-${vlogId}`);
+
+  const wasUp = upBtn.classList.contains('active');
+  const wasDown = downBtn.classList.contains('active');
+  let currentScore = parseInt(scoreSpan.textContent, 10) || 0;
+
+  // Optimistic UI updates
+  if (requestedVote === 1) {
+    if (wasUp) {
+      upBtn.classList.remove('active');
+      scoreSpan.textContent = currentScore - 1;
+    } else {
+      upBtn.classList.add('active');
+      downBtn.classList.remove('active');
+      scoreSpan.textContent = wasDown ? currentScore + 2 : currentScore + 1;
+    }
+  } else if (requestedVote === -1) {
+    if (wasDown) {
+      downBtn.classList.remove('active');
+      scoreSpan.textContent = currentScore + 1;
+    } else {
+      downBtn.classList.add('active');
+      upBtn.classList.remove('active');
+      scoreSpan.textContent = wasUp ? currentScore - 2 : currentScore - 1;
+    }
+  }
+
+  try {
+    const res = await fetch(`/vlogs/${vlogId}/vote`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: JSON.stringify({ vote_type: requestedVote })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.message || 'Voting failed');
+      scoreSpan.textContent = currentScore;
+      if (wasUp) upBtn.classList.add('active'); else upBtn.classList.remove('active');
+      if (wasDown) downBtn.classList.add('active'); else downBtn.classList.remove('active');
+      return;
+    }
+
+    scoreSpan.textContent = data.net_votes;
+    if (data.user_vote === 1) {
+      upBtn.classList.add('active');
+      downBtn.classList.remove('active');
+    } else if (data.user_vote === -1) {
+      downBtn.classList.add('active');
+      upBtn.classList.remove('active');
+    } else {
+      upBtn.classList.remove('active');
+      downBtn.classList.remove('active');
+    }
+  } catch (err) {
+    console.error('Vlog vote error', err);
+    scoreSpan.textContent = currentScore;
+    if (wasUp) upBtn.classList.add('active'); else upBtn.classList.remove('active');
+    if (wasDown) downBtn.classList.add('active'); else downBtn.classList.remove('active');
+  }
+}
+</script>
+{% endblock %}

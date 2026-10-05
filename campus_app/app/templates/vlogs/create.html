@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block title %}Upload 30-Second Vlog · Campus Stories{% endblock %}
+
+{% block content %}
+<div class="vlog-create-layout">
+  <div class="vlog-create-card">
+    <!-- Header -->
+    <div class="vlog-create-header">
+      <div class="vlog-create-title-row">
+        <a href="{{ url_for('vlogs.vlog_feed') }}" class="btn-back-link" title="Back to Vlogs Feed">
+          ← Back
+        </a>
+        <h1 class="vlog-create-title">Post 30s Campus Vlog</h1>
+      </div>
+      <p class="vlog-create-subtitle">
+        Short-form micro-vlog snapshots of your university day at KTU.
+      </p>
+    </div>
+
+    <!-- Upload Form -->
+    <form
+      method="POST"
+      action="{{ url_for('vlogs.create_vlog') }}"
+      enctype="multipart/form-data"
+      id="vlogUploadForm"
+      class="vlog-form"
+    >
+      <!-- Drag & Drop Video Dropzone -->
+      <div class="vlog-dropzone-wrapper">
+        <label for="videoInput" class="vlog-dropzone" id="vlogDropzone">
+          <input
+            type="file"
+            name="video"
+            id="videoInput"
+            accept="video/mp4,video/quicktime,video/webm"
+            required
+            class="vlog-file-input"
+          >
+
+          <div class="dropzone-content" id="dropzonePrompt">
+            <div class="dropzone-icon-circle">
+              📹
+            </div>
+            <div class="dropzone-text">
+              <span class="dropzone-primary-text">Click to choose or drag video here</span>
+              <span class="dropzone-secondary-text">MP4, MOV, or WEBM up to 50MB</span>
+            </div>
+          </div>
+
+          <!-- Video Preview State (Hidden initially) -->
+          <div class="dropzone-preview-state" id="dropzonePreview" style="display: none;">
+            <video id="previewVideoPlayer" playsinline controls class="dropzone-video-preview"></video>
+            <div class="preview-meta-row">
+              <div class="meta-item">
+                <span class="meta-label">Selected Clip:</span>
+                <span class="meta-value font-mono" id="previewFileName">video.mp4</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Duration:</span>
+                <span class="meta-value font-mono font-bold" id="previewDuration">0.0s</span>
+              </div>
+            </div>
+          </div>
+        </label>
+
+        <!-- Client-Side Duration Error Banner -->
+        <div class="vlog-validation-alert" id="durationAlert" style="display: none;">
+          <span class="alert-icon">⚠️</span>
+          <div class="alert-body">
+            <strong>Video exceeds 30 seconds limit!</strong>
+            <span id="durationAlertMsg">Please trim your video to 30.0s or less before uploading.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Caption with 200 Char Counter -->
+      <div class="form-group">
+        <div class="form-label-row">
+          <label for="captionInput" class="form-label">
+            Vlog Caption
+          </label>
+          <span class="char-counter" id="charCounter">0 / 200</span>
+        </div>
+        <textarea
+          name="caption"
+          id="captionInput"
+          rows="3"
+          maxlength="200"
+          placeholder="What's happening on campus? e.g. Midsem study session in Turing Hall #ktu"
+          class="form-control vlog-caption-input"
+        >{{ caption|default('') }}</textarea>
+        <span class="form-help">Keep it short, casual, and relatable to fellow students.</span>
+      </div>
+
+      <!-- Submit & Action Row -->
+      <div class="form-actions-row">
+        <a href="{{ url_for('vlogs.vlog_feed') }}" class="btn btn-secondary">
+          Cancel
+        </a>
+        <button
+          type="submit"
+          class="btn btn-primary btn-submit-vlog"
+          id="btnSubmitVlog"
+        >
+          <span>Publish to Campus Feed</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+/**
+ * Client-Side Video Duration Inspector & Drag-Drop Engine:
+ * - Reads local video blob metadata before form submission.
+ * - Rejects videos > 30.5 seconds immediately with visual error banner.
+ * - Live character counter for caption (max 200).
+ */
+document.addEventListener('DOMContentLoaded', () => {
+  const fileInput = document.getElementById('videoInput');
+  const dropzone = document.getElementById('vlogDropzone');
+  const dropzonePrompt = document.getElementById('dropzonePrompt');
+  const dropzonePreview = document.getElementById('dropzonePreview');
+  const previewPlayer = document.getElementById('previewVideoPlayer');
+  const previewFileName = document.getElementById('previewFileName');
+  const previewDuration = document.getElementById('previewDuration');
+  const durationAlert = document.getElementById('durationAlert');
+  const durationAlertMsg = document.getElementById('durationAlertMsg');
+  const btnSubmit = document.getElementById('btnSubmitVlog');
+  const captionInput = document.getElementById('captionInput');
+  const charCounter = document.getElementById('charCounter');
+
+  // 1. Caption Character Counter
+  if (captionInput && charCounter) {
+    const updateCounter = () => {
+      const len = captionInput.value.length;
+      charCounter.textContent = `${len} / 200`;
+      if (len >= 190) {
+        charCounter.style.color = '#ef4444';
+      } else {
+        charCounter.style.color = '';
+      }
+    };
+    captionInput.addEventListener('input', updateCounter);
+    updateCounter();
+  }
+
+  // 2. Client-Side Video Duration Inspector
+  if (fileInput) {
+    fileInput.addEventListener('change', function(e) {
+      const file = this.files[0];
+      if (!file) return;
+
+      durationAlert.style.display = 'none';
+      btnSubmit.disabled = false;
+
+      previewFileName.textContent = file.name;
+
+      const blobUrl = URL.createObjectURL(file);
+      previewPlayer.src = blobUrl;
+
+      // Inspect duration via HTML5 video element metadata
+      previewPlayer.onloadedmetadata = () => {
+        const dur = previewPlayer.duration;
+        previewDuration.textContent = `${dur.toFixed(1)}s`;
+
+        if (dur > 30.5) {
+          // Exceeds limit
+          durationAlertMsg.textContent = `Your video is ${dur.toFixed(1)}s. Vlogs must be 30 seconds or less.`;
+          durationAlert.style.display = 'flex';
+          btnSubmit.disabled = true;
+          previewDuration.style.color = '#ef4444';
+        } else {
+          durationAlert.style.display = 'none';
+          btnSubmit.disabled = false;
+          previewDuration.style.color = '#10b981';
+        }
+
+        dropzonePrompt.style.display = 'none';
+        dropzonePreview.style.display = 'block';
+      };
+
+      previewPlayer.onerror = () => {
+        durationAlertMsg.textContent = 'Could not preview video file. Please ensure it is a valid MP4, MOV, or WEBM.';
+        durationAlert.style.display = 'flex';
+      };
+    });
+  }
+
+  // 3. Drag & Drop visual highlights
+  ['dragenter', 'dragover'].forEach(event => {
+    dropzone.addEventListener(event, (e) => {
+      e.preventDefault();
+      dropzone.classList.add('drag-over');
+    });
+  });
+
+  ['dragleave', 'drop'].forEach(event => {
+    dropzone.addEventListener(event, (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('drag-over');
+    });
+  });
+});
+</script>
+{% endblock %}

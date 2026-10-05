@@ -1,0 +1,478 @@
+{% extends "base.html" %}
+
+{% block title %}Student Registration & Landing · KTU CampusSocial{% endblock %}
+
+{% block content %}
+<!-- Fullscreen Landing Page Container with Official KTU Main Gate Background & Dark Overlay -->
+<div class="ktu-landing-fullscreen-backdrop">
+  <div class="auth-wrapper landing-auth-wrapper">
+    <div class="auth-card register-card landing-card">
+      
+      <!-- Official KTU Crest Logo at the top of the form card -->
+      <div class="ktu-crest-container">
+        <img
+          src="https://lookaside.fbsbx.com/lookaside/crawler/media/?media_id=100069632100022"
+          alt="Koforidua Technical University Official Crest"
+          class="ktu-crest-img"
+          loading="eager"
+          onerror="this.onerror=null; this.src='https://api.dicebear.com/7.x/identicon/svg?seed=KTU';"
+        >
+        <div class="ktu-institution-meta">
+          <span class="ktu-crest-subheading">Koforidua Technical University</span>
+          <span class="ktu-crest-accreditation">Official Student Social & Academic Network</span>
+        </div>
+      </div>
+
+      <!-- Header with Title -->
+      <div class="auth-header text-center">
+        <h1 class="auth-title">Create Student Account</h1>
+      </div>
+
+      <!-- Registration Form -->
+      <form method="POST" action="{{ url_for('auth.register') }}" class="auth-form" novalidate id="registerForm">
+        <!-- 1. Full Name -->
+        <div class="form-group">
+          <label for="full_name" class="form-label">
+            Full Name <span class="required-mark">*</span>
+          </label>
+          <div class="input-wrapper">
+            <input
+              type="text"
+              id="full_name"
+              name="full_name"
+              value="{{ full_name|default('') }}"
+              class="form-input"
+              placeholder="e.g. Kwame Mensah"
+              autocomplete="name"
+              minlength="2"
+              maxlength="100"
+              required
+              autofocus
+            >
+          </div>
+        </div>
+
+        <!-- 2. Username -->
+        <div class="form-group">
+          <label for="username" class="form-label">
+            Campus Username <span class="required-mark">*</span>
+          </label>
+          <div class="input-wrapper">
+            <span class="input-prefix">@</span>
+            <input
+              type="text"
+              id="username"
+              name="username"
+              value="{{ username|default('') }}"
+              class="form-input form-input-prefixed"
+              placeholder="e.g. kwame_m"
+              autocomplete="username"
+              minlength="3"
+              maxlength="30"
+              required
+            >
+          </div>
+        </div>
+
+        <!-- 3. Institutional Email (validates in background) -->
+        <div class="form-group">
+          <label for="email" class="form-label">
+            Institutional Email <span class="required-mark">*</span>
+          </label>
+          <div class="input-wrapper">
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value="{{ email|default('') }}"
+              class="form-input"
+              placeholder="e.g. 0420230012@ktu.edu.gh"
+              autocomplete="email"
+              required
+            >
+          </div>
+        </div>
+
+        <!-- 4. Password & Password Confirmation -->
+        <div class="form-grid">
+          <!-- Password -->
+          <div class="form-group">
+            <label for="password" class="form-label">
+              Password <span class="required-mark">*</span>
+            </label>
+            <div class="input-wrapper password-wrapper">
+              <input
+                type="password"
+                id="password"
+                name="password"
+                class="form-input"
+                placeholder="Minimum 8 characters"
+                autocomplete="new-password"
+                minlength="8"
+                required
+              >
+              <button
+                type="button"
+                id="togglePassword"
+                class="password-toggle-btn"
+                aria-label="Toggle password visibility"
+                tabindex="-1"
+              >
+                Show
+              </button>
+            </div>
+            <span class="field-hint" id="pwdLengthHint">At least 8 characters.</span>
+          </div>
+
+          <!-- Confirm Password -->
+          <div class="form-group">
+            <label for="confirm_password" class="form-label">
+              Confirm Password <span class="required-mark">*</span>
+            </label>
+            <div class="input-wrapper password-wrapper">
+              <input
+                type="password"
+                id="confirm_password"
+                name="confirm_password"
+                class="form-input"
+                placeholder="Re-enter password"
+                autocomplete="new-password"
+                minlength="8"
+                required
+              >
+              <button
+                type="button"
+                id="toggleConfirmPassword"
+                class="password-toggle-btn"
+                aria-label="Toggle confirm password visibility"
+                tabindex="-1"
+              >
+                Show
+              </button>
+            </div>
+            <span class="field-hint" id="confirmHint">Must match your password.</span>
+          </div>
+        </div>
+
+        <!-- Guidelines agreement note -->
+        <div class="terms-note">
+          By registering, you confirm that you are an enrolled student of Koforidua Technical University and agree to the
+          <a href="#community-code" class="terms-link" onclick="alert('KTU Student Code of Conduct: Zero tolerance for cyber-bullying, harassment, impersonation, or academic dishonesty.'); return false;">KTU Campus Code of Conduct</a>.
+        </div>
+
+        <!-- Submit CTA (Min 44px touch target) -->
+        <button type="submit" class="btn btn-primary btn-block btn-lg" id="submitRegisterBtn">
+          Create Student Account & Continue &rarr;
+        </button>
+      </form>
+
+      <!-- Switch to Login -->
+      <div class="auth-footer text-center">
+        <p class="footer-text">
+          Already have an active student account?
+          <a href="{{ url_for('auth.login') }}" class="footer-link">Sign in here</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<style>
+  /* ==========================================================================
+     KTU Landing Page & Fullscreen Background Stylesheet
+     Full-Screen Background: Main Gate of Koforidua Technical University
+     Overlay: Subtle dark gradient for maximum contrast and readability
+     Crest Logo: Official KTU Crest centered at the top of the modern card
+     ========================================================================== */
+
+  /* Override app-content padding for edge-to-edge backdrop */
+  .app-content {
+    padding: 0 !important;
+  }
+
+  .main-container {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  .ktu-landing-fullscreen-backdrop {
+    min-height: calc(100vh - 56px);
+    width: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px;
+    background-color: #0f172a;
+    /* Official KTU Main Gate Entrance photo with subtle dark overlay */
+    background-image: 
+      linear-gradient(rgba(15, 23, 42, 0.78), rgba(15, 23, 42, 0.88)),
+      url("https://upload.wikimedia.org/wikipedia/commons/2/23/Main_Gate_of_Koforidua_Technical_University.jpg");
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+  }
+
+  .landing-auth-wrapper {
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+  }
+
+  /* Modern Card Container over background */
+  .landing-card {
+    width: 100%;
+    background-color: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    border-radius: var(--radius-lg);
+    padding: 32px 28px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+  }
+
+  @media (max-width: 500px) {
+    .landing-card {
+      padding: 24px 18px;
+      border-radius: var(--radius-md);
+    }
+  }
+
+  /* Official KTU Crest Logo Header */
+  .ktu-crest-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  .ktu-crest-img {
+    width: 72px;
+    height: 72px;
+    object-fit: contain;
+    border-radius: 50%;
+    background-color: #ffffff;
+    padding: 4px;
+    border: 2px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    margin-bottom: 10px;
+    transition: transform 0.2s ease;
+  }
+
+  .ktu-crest-img:hover {
+    transform: scale(1.04);
+  }
+
+  .ktu-institution-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .ktu-crest-subheading {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-primary);
+  }
+
+  .ktu-crest-accreditation {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+  }
+
+  .text-center {
+    text-align: center;
+  }
+
+  .domain-notice-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    background-color: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: var(--radius-md);
+    margin-bottom: 18px;
+    font-size: 0.8125rem;
+    color: #14532d;
+    line-height: 1.45;
+  }
+
+  .domain-banner-icon {
+    flex-shrink: 0;
+    color: #15803d;
+    margin-top: 1px;
+  }
+
+  .domain-banner-text code {
+    background-color: #dcfce7;
+    padding: 2px 5px;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: #166534;
+    font-weight: 600;
+  }
+
+  .badge-domain-pill {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    background-color: var(--color-surface-subtle);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    transition: all 0.2s ease;
+  }
+
+  .badge-domain-pill.valid {
+    background-color: #f0fdf4;
+    border-color: #86efac;
+    color: #15803d;
+  }
+
+  .badge-domain-pill.invalid {
+    background-color: #fef2f2;
+    border-color: #fca5a5;
+    color: #b91c1c;
+  }
+
+  .input-prefix {
+    position: absolute;
+    left: 12px;
+    color: var(--color-text-subtle);
+    font-weight: 600;
+    font-size: 0.9375rem;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .form-input-prefixed {
+    padding-left: 28px !important;
+  }
+
+  .domain-indicator-icon {
+    position: absolute;
+    right: 12px;
+    font-size: 1rem;
+    pointer-events: none;
+  }
+
+  .domain-live-feedback {
+    font-size: 0.75rem;
+    margin-top: 4px;
+    color: var(--color-text-muted);
+  }
+
+  .domain-live-feedback.valid {
+    color: #15803d;
+    font-weight: 500;
+  }
+
+  .domain-live-feedback.invalid {
+    color: #b91c1c;
+    font-weight: 500;
+  }
+
+  .btn-lg {
+    min-height: 48px;
+    font-size: 0.9375rem;
+    font-weight: 700;
+  }
+
+  .terms-link {
+    color: var(--color-primary);
+    text-decoration: underline;
+  }
+</style>
+
+<script>
+  (function() {
+    const ADMIN_OVERRIDE = 'brucedoku3@gmail.com';
+    const emailInput = document.getElementById('email');
+
+    const pwdInput = document.getElementById('password');
+    const confirmInput = document.getElementById('confirm_password');
+    const confirmHint = document.getElementById('confirmHint');
+
+    const togglePassword = document.getElementById('togglePassword');
+    const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
+
+    // Password visibility toggles
+    if (togglePassword && pwdInput) {
+      togglePassword.addEventListener('click', function() {
+        const isPwd = pwdInput.type === 'password';
+        pwdInput.type = isPwd ? 'text' : 'password';
+        togglePassword.textContent = isPwd ? 'Hide' : 'Show';
+      });
+    }
+
+    if (toggleConfirmPassword && confirmInput) {
+      toggleConfirmPassword.addEventListener('click', function() {
+        const isPwd = confirmInput.type === 'password';
+        confirmInput.type = isPwd ? 'text' : 'password';
+        toggleConfirmPassword.textContent = isPwd ? 'Hide' : 'Show';
+      });
+    }
+
+    // Background Institutional Email Domain Validation
+    function validateEmailDomain() {
+      if (!emailInput) return true;
+      const email = (emailInput.value || '').trim().toLowerCase();
+      if (!email) {
+        emailInput.setCustomValidity('Please enter an official KTU email.');
+        return false;
+      }
+
+      if (email === ADMIN_OVERRIDE || (email.endsWith('@ktu.edu.gh') && email.length > 11)) {
+        const local = email.endsWith('@ktu.edu.gh') ? email.slice(0, -11) : email;
+        if (email === ADMIN_OVERRIDE || (local.length > 0 && !local.includes('@'))) {
+          emailInput.setCustomValidity('');
+          return true;
+        }
+      }
+
+      emailInput.setCustomValidity('Only @ktu.edu.gh institutional emails are permitted.');
+      return false;
+    }
+
+    if (emailInput) {
+      emailInput.addEventListener('input', validateEmailDomain);
+    }
+
+    // Password Match Validation
+    function validatePasswords() {
+      if (!confirmInput.value) {
+        confirmHint.textContent = 'Must match your password.';
+        confirmHint.style.color = '';
+        confirmInput.setCustomValidity('');
+        return;
+      }
+
+      if (pwdInput.value === confirmInput.value) {
+        confirmHint.textContent = 'Passwords match ✓';
+        confirmHint.style.color = '#15803d';
+        confirmInput.setCustomValidity('');
+      } else {
+        confirmHint.textContent = 'Passwords do not match.';
+        confirmHint.style.color = '#b91c1c';
+        confirmInput.setCustomValidity('Passwords do not match.');
+      }
+    }
+
+    if (pwdInput && confirmInput) {
+      pwdInput.addEventListener('input', validatePasswords);
+      confirmInput.addEventListener('input', validatePasswords);
+    }
+  })();
+</script>
+{% endblock %}

@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: ktu-campus-social
+    runtime: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn wsgi:application --bind 0.0.0.0:$PORT --workers 4 --threads 2 --worker-class gthread --access-logfile - --error-logfile -"
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: PYTHON_VERSION
+        value: 3.11.8
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        value: sqlite:////var/data/app.db
+      - key: UPLOAD_FOLDER
+        value: /var/data/uploads
+    disk:
+      name: campus-persistent-storage
+      mountPath: /var/data
+      sizeGB: 10

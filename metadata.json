@@ -1,0 +1,8 @@
+{
+  "name": "Remix Remix  CampusApp Architec",
+  "description": "Enterprise Flask Application Factory architecture, bootstrap generator, and interactive code explorer for campus social platforms.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

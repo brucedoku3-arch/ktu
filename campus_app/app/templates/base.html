@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="{{ mobile_viewport_meta|default('width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover') }}">
+  <meta name="theme-color" content="{{ theme_color|default('#4f46e5') }}">
+  <title>{% block title %}CampusSocial{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="{% if is_mobile %}is-mobile{% else %}is-desktop{% endif %}">
+  <header class="app-header">
+    <div class="header-container">
+      <a href="{{ url_for('feed.index') }}" class="brand-logo">
+        <span class="brand-icon">🎓</span>
+        <span class="brand-text">{{ app_name|default('CampusSocial') }}</span>
+      </a>
+
+      <nav class="header-nav">
+        <a href="{{ url_for('feed.index') }}" class="nav-link">Feed</a>
+        <a href="{{ url_for('vlogs.vlog_feed') }}" class="nav-link nav-vlogs-link" title="30-Second Campus Vlogs">
+          <span>📹 Vlogs</span>
+        </a>
+        <a href="{{ url_for('culture.aux_battle') }}" class="nav-link nav-aux-link" title="Daily Campus Aux Cord Battles">
+          <span>🎵 Aux</span>
+        </a>
+        <a href="{{ url_for('culture.brainrot_hub') }}" class="nav-link" title="Campus Brainrot & Meme Vault">
+          <span>🧠 Brainrot</span>
+        </a>
+        {% if current_user.is_authenticated %}
+          {% if current_user.is_admin %}
+            <a href="{{ url_for('admin.dashboard') }}" class="nav-link nav-admin-badge" title="Safety Command Center">
+              <span>🛡️ Admin</span>
+            </a>
+          {% endif %}
+          <a href="{{ url_for('messaging.inbox') }}" class="nav-link nav-messages-link">
+            <span>Messages</span>
+            <span class="nav-unread-dot" id="navUnreadBadge" style="display: none;"></span>
+          </a>
+          <a href="{{ url_for('profile.view_profile', username=current_user.username) }}" class="nav-link">
+            @{{ current_user.username }}
+          </a>
+          <a href="{{ url_for('auth.logout') }}" class="nav-link nav-logout">Logout</a>
+        {% else %}
+          <a href="{{ url_for('auth.login') }}" class="nav-link">Log In</a>
+          <a href="{{ url_for('auth.register') }}" class="nav-link nav-highlight">Register</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main class="app-content">
+    <div class="main-container">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-stack" role="alert">
+            {% for category, message in messages %}
+              <div class="flash-alert flash-{{ category }}">
+                <span class="flash-message">{{ message }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <!-- Reusable Universal Safety Report Modal -->
+  {% include 'components/report_modal.html' %}
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

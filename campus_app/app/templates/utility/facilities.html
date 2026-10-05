@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}Live Campus Facility Tracker · CampusSocial{% endblock %}
+
+{% block content %}
+<div class="facility-tracker-layout">
+  <!-- Tracker Header Card -->
+  <section class="facility-header-card">
+    <div class="facility-header-content">
+      <div class="facility-title-row">
+        <h1 class="facility-main-title">Live Campus Facility Tracker</h1>
+        <span class="live-pulse-badge">
+          <span class="pulse-dot"></span> Live Crowdsourced
+        </span>
+      </div>
+      <p class="facility-sub-title">
+        Real-time crowd levels reported by verified campus students. Reports within the last 45 minutes reflect active occupancy.
+      </p>
+
+      <div class="facility-legend-row">
+        <div class="legend-item">
+          <span class="legend-swatch status-empty"></span>
+          <span>Empty (Plenty of Space)</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-swatch status-moderate"></span>
+          <span>Moderate (Fairly Busy)</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-swatch status-packed"></span>
+          <span>Packed (High Wait Time)</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Live Status Toast Message -->
+  <div id="facilityToast" class="facility-toast" style="display: none;" role="alert"></div>
+
+  <!-- Facilities Grid -->
+  <section class="facilities-grid" id="facilitiesGrid">
+    {% for item in facility_list %}
+      <article
+        class="facility-card"
+        id="facility-card-{{ item.id }}"
+        data-facility-id="{{ item.id }}"
+      >
+        <div class="facility-card-header">
+          <h2 class="facility-card-name">{{ item.facility_name }}</h2>
+          <span
+            id="status-badge-{{ item.id }}"
+            class="facility-status-badge {{ item.status_badge_class }}"
+          >
+            {{ item.status_label }}
+          </span>
+        </div>
+
+        <div class="facility-timestamp-line">
+          <span class="time-label">Last reported:</span>
+          <time id="time-{{ item.id }}" class="time-value">
+            {{ item.relative_time }}
+          </time>
+          {% if item.is_fresh %}
+            <span class="freshness-tag">Active</span>
+          {% else %}
+            <span class="stale-tag">Stale (&gt;45m)</span>
+          {% endif %}
+        </div>
+
+        <!-- Quick-Tap Update Buttons -->
+        <div class="facility-actions-section">
+          <span class="actions-label">Tap your report if on-site:</span>
+          <div class="quick-tap-buttons" role="group" aria-label="Update crowd status">
+            <button
+              type="button"
+              class="btn-tap-status tap-empty {% if item.status == 'empty' %}selected{% endif %}"
+              onclick="submitFacilityReport({{ item.id }}, 'empty')"
+              title="Report Empty"
+            >
+              Empty
+            </button>
+            <button
+              type="button"
+              class="btn-tap-status tap-moderate {% if item.status == 'moderate' %}selected{% endif %}"
+              onclick="submitFacilityReport({{ item.id }}, 'moderate')"
+              title="Report Moderate"
+            >
+              Moderate
+            </button>
+            <button
+              type="button"
+              class="btn-tap-status tap-packed {% if item.status == 'packed' %}selected{% endif %}"
+              onclick="submitFacilityReport({{ item.id }}, 'packed')"
+              title="Report Packed"
+            >
+              Packed
+            </button>
+          </div>
+        </div>
+      </article>
+    {% endfor %}
+  </section>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  /**
+   * Quick-tap Facility Report AJAX Handler
+   */
+  async function submitFacilityReport(facilityId, newStatus) {
+    {% if not current_user.is_authenticated %}
+      window.location.href = "{{ url_for('auth.login') }}";
+      return;
+    {% endif %}
+
+    const card = document.getElementById(`facility-card-${facilityId}`);
+    if (!card) return;
+
+    const badge = document.getElementById(`status-badge-${facilityId}`);
+    const timeEl = document.getElementById(`time-${facilityId}`);
+    const toast = document.getElementById('facilityToast');
+
+    // Optimistically update button active state
+    const buttons = card.querySelectorAll('.btn-tap-status');
+    buttons.forEach(btn => btn.classList.remove('selected'));
+    const clickedBtn = card.querySelector(`.tap-${newStatus}`);
+    if (clickedBtn) clickedBtn.classList.add('selected');
+
+    try {
+      const response = await fetch(`/utility/facilities/${facilityId}/report`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to record facility status.');
+      }
+
+      const data = await response.json();
+      if (data.status === 'success' && data.facility) {
+        const fac = data.facility;
+        // Update badge
+        badge.className = `facility-status-badge ${fac.status_badge_class}`;
+        badge.textContent = fac.status_label;
+        timeEl.textContent = 'Just now';
+
+        // Show feedback toast
+        if (toast) {
+          toast.textContent = data.message;
+          toast.style.display = 'block';
+          setTimeout(() => { toast.style.display = 'none'; }, 3000);
+        }
+      }
+    } catch (err) {
+      console.error('Error reporting facility status:', err);
+      if (toast) {
+        toast.textContent = 'Could not update facility. Please check connection.';
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 3500);
+      }
+    }
+  }
+</script>
+{% endblock %}

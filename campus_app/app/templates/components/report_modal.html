@@ -1,0 +1,265 @@
+<!-- Reusable Campus Moderation & Safety Report Modal -->
+<div id="safetyReportModal" class="report-modal-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="reportModalTitle">
+  <div class="report-modal-dialog">
+    <div class="report-modal-header">
+      <div class="report-modal-title-wrap">
+        <span class="report-modal-icon" aria-hidden="true">🛡️</span>
+        <div>
+          <h3 id="reportModalTitle" class="report-modal-title">Submit Community Safety Report</h3>
+          <p id="reportModalSubtitle" class="report-modal-subtitle">Reporting content to KTU campus safety and moderation staff.</p>
+        </div>
+      </div>
+      <button type="button" class="report-modal-close" onclick="closeSafetyReportModal()" aria-label="Close modal">
+        &times;
+      </button>
+    </div>
+
+    <form id="safetyReportForm" onsubmit="handleSafetyReportSubmit(event)">
+      <input type="hidden" id="reportTargetType" name="target_type" value="">
+      <input type="hidden" id="reportTargetId" name="target_id" value="">
+
+      <!-- Target Context Banner -->
+      <div class="report-context-banner" id="reportContextBanner" style="display: none;">
+        <span class="context-pill" id="reportTargetBadge">Content</span>
+        <span class="context-desc" id="reportTargetPreview"></span>
+      </div>
+
+      <!-- Alert / Status Banner -->
+      <div id="reportAlertBox" class="report-modal-alert" style="display: none;"></div>
+
+      <!-- Reason Radio Selection -->
+      <div class="report-form-group">
+        <label class="report-form-label">Reason for Report <span class="required-star">*</span></label>
+        <div class="report-reasons-list">
+          <label class="report-reason-item">
+            <input type="radio" name="report_reason" value="harassment" required>
+            <div class="report-reason-content">
+              <span class="reason-title">Harassment or Bullying</span>
+              <span class="reason-sub">Targeted intimidation, insults, or harassment directed at a student.</span>
+            </div>
+          </label>
+
+          <label class="report-reason-item">
+            <input type="radio" name="report_reason" value="hate_speech">
+            <div class="report-reason-content">
+              <span class="reason-title">Hate Speech or Discrimination</span>
+              <span class="reason-sub">Slurs, hate speech, or discriminatory attacks on identity or background.</span>
+            </div>
+          </label>
+
+          <label class="report-reason-item">
+            <input type="radio" name="report_reason" value="explicit_media">
+            <div class="report-reason-content">
+              <span class="reason-title">Explicit or Inappropriate Media</span>
+              <span class="reason-sub">NSFW imagery, non-consensual photography, or violence.</span>
+            </div>
+          </label>
+
+          <label class="report-reason-item">
+            <input type="radio" name="report_reason" value="illegal_content">
+            <div class="report-reason-content">
+              <span class="reason-title">Academic Dishonesty or Illegal Activity</span>
+              <span class="reason-sub">Exam leaks, illegal trades, blackmail, or institutional rule violations.</span>
+            </div>
+          </label>
+
+          <label class="report-reason-item">
+            <input type="radio" name="report_reason" value="spam">
+            <div class="report-reason-content">
+              <span class="reason-title">Spam or Unsolicited Promotion</span>
+              <span class="reason-sub">Automated spam, repetitive links, scams, or unverified commercial ads.</span>
+            </div>
+          </label>
+
+          <label class="report-reason-item">
+            <input type="radio" name="report_reason" value="impersonation">
+            <div class="report-reason-content">
+              <span class="reason-title">Impersonation</span>
+              <span class="reason-sub">Pretending to be another KTU student, campus executive, or lecturer.</span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Additional Details Textarea -->
+      <div class="report-form-group">
+        <label for="reportDetails" class="report-form-label">
+          Additional Context <span class="label-optional">(Optional)</span>
+        </label>
+        <textarea
+          id="reportDetails"
+          name="details"
+          rows="3"
+          class="report-textarea"
+          placeholder="Please describe what makes this content unsafe or violates KTU campus guidelines..."
+          maxlength="500"
+        ></textarea>
+        <span class="report-char-count"><span id="reportCharNum">0</span>/500</span>
+      </div>
+
+      <!-- Footer Buttons -->
+      <div class="report-modal-footer">
+        <button type="button" class="btn-report-cancel" onclick="closeSafetyReportModal()">
+          Cancel
+        </button>
+        <button type="submit" id="reportSubmitBtn" class="btn-report-submit">
+          <span class="submit-text">Submit Report</span>
+          <span class="submit-spinner" style="display: none;">Submitting...</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+/**
+ * Global Safety Report Modal Engine
+ * Handles opening, population, AJAX submission, and notification toasts.
+ */
+function openSafetyReportModal(targetType, targetId, targetPreview) {
+  const modal = document.getElementById('safetyReportModal');
+  const typeInput = document.getElementById('reportTargetType');
+  const idInput = document.getElementById('reportTargetId');
+  const banner = document.getElementById('reportContextBanner');
+  const badge = document.getElementById('reportTargetBadge');
+  const preview = document.getElementById('reportTargetPreview');
+  const alertBox = document.getElementById('reportAlertBox');
+  const form = document.getElementById('safetyReportForm');
+
+  if (!modal || !typeInput || !idInput) return;
+
+  // Reset form state
+  form.reset();
+  alertBox.style.display = 'none';
+  alertBox.className = 'report-modal-alert';
+  document.getElementById('reportCharNum').textContent = '0';
+
+  // Set inputs
+  typeInput.value = targetType || 'post';
+  idInput.value = targetId || '';
+
+  // Update context banner
+  if (banner && badge) {
+    banner.style.display = 'flex';
+    badge.textContent = (targetType || 'Content').toUpperCase();
+    if (preview) {
+      preview.textContent = targetPreview || ('ID #' + targetId);
+    }
+  }
+
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSafetyReportModal() {
+  const modal = document.getElementById('safetyReportModal');
+  if (modal) {
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+}
+
+// Character counter for textarea
+document.addEventListener('DOMContentLoaded', function() {
+  const textarea = document.getElementById('reportDetails');
+  const charNum = document.getElementById('reportCharNum');
+  if (textarea && charNum) {
+    textarea.addEventListener('input', function() {
+      charNum.textContent = this.value.length;
+    });
+  }
+
+  // Backdrop click to close
+  const modal = document.getElementById('safetyReportModal');
+  if (modal) {
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) {
+        closeSafetyReportModal();
+      }
+    });
+  }
+
+  // ESC key to close
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      closeSafetyReportModal();
+    }
+  });
+
+  // Attach global click listener for any elements with [data-report-type]
+  document.addEventListener('click', function(e) {
+    const trigger = e.target.closest('[data-report-type]');
+    if (trigger) {
+      e.preventDefault();
+      const type = trigger.getAttribute('data-report-type');
+      const id = trigger.getAttribute('data-report-id');
+      const preview = trigger.getAttribute('data-report-preview') || '';
+      openSafetyReportModal(type, id, preview);
+    }
+  });
+});
+
+async function handleSafetyReportSubmit(e) {
+  e.preventDefault();
+  const form = e.target;
+  const submitBtn = document.getElementById('reportSubmitBtn');
+  const alertBox = document.getElementById('reportAlertBox');
+  const targetType = document.getElementById('reportTargetType').value;
+  const targetId = document.getElementById('reportTargetId').value;
+  const details = document.getElementById('reportDetails').value;
+  const reasonRadio = form.querySelector('input[name="report_reason"]:checked');
+
+  if (!reasonRadio) {
+    showAlert('Please select a reason for submitting this report.', 'warning');
+    return;
+  }
+
+  const reason = reasonRadio.value;
+
+  // Toggle button loading state
+  submitBtn.disabled = true;
+  submitBtn.querySelector('.submit-text').style.display = 'none';
+  submitBtn.querySelector('.submit-spinner').style.display = 'inline';
+  alertBox.style.display = 'none';
+
+  try {
+    const response = await fetch('/report', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: JSON.stringify({
+        target_type: targetType,
+        target_id: parseInt(targetId, 10),
+        reason: reason,
+        details: details
+      })
+    });
+
+    const result = await response.json();
+
+    if (response.ok && (result.status === 'success' || result.status === 'info')) {
+      showAlert(result.message || 'Report submitted to campus moderation. Thank you.', 'success');
+      setTimeout(function() {
+        closeSafetyReportModal();
+      }, 1400);
+    } else {
+      showAlert(result.message || 'Failed to submit report. Please try again.', 'danger');
+    }
+  } catch (err) {
+    showAlert('Network error. Unable to reach campus safety servers.', 'danger');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.querySelector('.submit-text').style.display = 'inline';
+    submitBtn.querySelector('.submit-spinner').style.display = 'none';
+  }
+
+  function showAlert(msg, type) {
+    alertBox.textContent = msg;
+    alertBox.className = 'report-modal-alert alert-' + type;
+    alertBox.style.display = 'block';
+  }
+}
+</script>

@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}@{{ user.username }} · Campus Profile{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+  <!-- Profile Header Card -->
+  <section class="profile-header-card">
+    <div class="profile-main-row">
+      <!-- Avatar Section -->
+      <div class="profile-avatar-container">
+        {% if user.avatar_url and user.avatar_url != 'default_avatar.png' %}
+          <img
+            src="{{ url_for('static', filename='uploads/' + user.avatar_url) }}"
+            alt="@{{ user.username }}'s avatar"
+            class="profile-avatar-img"
+            onerror="this.src='{{ url_for('static', filename='uploads/avatars/default_avatar.png') }}';"
+          >
+        {% else %}
+          <div class="profile-avatar-fallback">
+            {{ user.username[:2]|upper }}
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Identity & Action Info -->
+      <div class="profile-identity">
+        <div class="profile-name-row">
+          <h1 class="profile-username">@{{ user.username }}</h1>
+          <span class="student-badge">ID: {{ user.student_id }}</span>
+          {% if user.is_admin %}
+            <span class="admin-badge">Admin</span>
+          {% endif %}
+        </div>
+
+        <p class="profile-bio">{{ profile.bio }}</p>
+
+        <div class="profile-meta-row">
+          <span>Joined {{ profile.created_at }}</span>
+          <span aria-hidden="true">·</span>
+          <span><strong>{{ net_karma }}</strong> Net Karma</span>
+        </div>
+      </div>
+
+      <!-- Contextual Action Buttons -->
+      <div class="profile-actions">
+        {% if is_self %}
+          <a href="{{ url_for('profile.edit_profile') }}" class="btn btn-secondary">
+            Edit Profile
+          </a>
+        {% elif current_user.is_authenticated %}
+          <div class="action-btn-group">
+            {% if is_blocked %}
+              <form method="POST" action="{{ url_for('profile.unblock_user', username=user.username) }}">
+                <button type="submit" class="btn btn-secondary btn-unblock">
+                  Unblock
+                </button>
+              </form>
+            {% else %}
+              <a href="{{ url_for('messaging.conversation', username=user.username) }}" class="btn btn-primary btn-message-peer">
+                💬 Message
+              </a>
+              <form method="POST" action="{{ url_for('profile.block_user', username=user.username) }}" onsubmit="return confirm('Block @{{ user.username }}? Mutual interaction and feeds will be restricted.');">
+                <button type="submit" class="btn btn-secondary btn-block-user">
+                  Block
+                </button>
+              </form>
+              <button
+                type="button"
+                class="btn btn-subtle"
+                onclick="document.getElementById('reportModal').style.display='flex';"
+              >
+                Report
+              </button>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Quick Stats Bar -->
+    <div class="profile-stats-bar">
+      <div class="stat-pill">
+        <span class="stat-value">{{ memes_count }}</span>
+        <span class="stat-label">Memes</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-value">{{ fit_checks_count }}</span>
+        <span class="stat-label">Fit Checks</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-value">{{ vlogs_count }}</span>
+        <span class="stat-label">30s Vlogs</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Privacy Restricted Notice if Mutual Blocked -->
+  {% if is_restricted %}
+    <section class="restricted-notice-card">
+      <div class="restricted-icon">🔒</div>
+      <h2 class="restricted-title">Content Restricted</h2>
+      <p class="restricted-message">
+        You cannot view @{{ user.username }}'s posts or vlogs because privacy restrictions are active.
+      </p>
+    </section>
+  {% else %}
+    <!-- Tab Navigation -->
+    <nav class="profile-tabs" aria-label="Media Tabs">
+      <a
+        href="{{ url_for('profile.view_profile', username=user.username, tab='memes') }}"
+        class="profile-tab-item {% if active_tab == 'memes' %}active{% endif %}"
+      >
+        Memes <span class="tab-badge">{{ memes_count }}</span>
+      </a>
+      <a
+        href="{{ url_for('profile.view_profile', username=user.username, tab='fit_checks') }}"
+        class="profile-tab-item {% if active_tab == 'fit_checks' %}active{% endif %}"
+      >
+        Fit Checks <span class="tab-badge">{{ fit_checks_count }}</span>
+      </a>
+      <a
+        href="{{ url_for('profile.view_profile', username=user.username, tab='vlogs') }}"
+        class="profile-tab-item {% if active_tab == 'vlogs' %}active{% endif %}"
+      >
+        Vlogs <span class="tab-badge">{{ vlogs_count }}</span>
+      </a>
+    </nav>
+
+    <!-- Tab Content Grid -->
+    <section class="profile-content-area">
+      {% if items and items|length > 0 %}
+        <div class="media-grid">
+          {% for item in items %}
+            <article class="media-card">
+              {% if active_tab == 'vlogs' %}
+                <div class="vlog-container">
+                  <video
+                    src="{{ url_for('static', filename='uploads/' + item.video_url) }}"
+                    controls
+                    preload="metadata"
+                    class="vlog-video-player"
+                  ></video>
+                  <span class="duration-tag">{{ item.duration_seconds }}s</span>
+                </div>
+              {% else %}
+                <img
+                  src="{{ url_for('static', filename='uploads/' + item.media_url) }}"
+                  alt="{{ item.caption|default('Campus post') }}"
+                  class="media-card-img"
+                  loading="lazy"
+                >
+              {% endif %}
+
+              {% if item.caption %}
+                <p class="media-card-caption">{{ item.caption }}</p>
+              {% endif %}
+
+              <div class="media-card-footer">
+                {% if active_tab == 'vlogs' %}
+                  <span>{{ item.views_count }} views</span>
+                  <span aria-hidden="true">·</span>
+                  <span>{{ item.likes_count }} likes</span>
+                {% else %}
+                  <span>{{ item.upvotes_count }} upvotes</span>
+                  <span aria-hidden="true">·</span>
+                  <span>Score: {{ item.score }}</span>
+                {% endif %}
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state-card">
+          <p class="empty-title">No {{ active_tab|replace('_', ' ')|title }} Published Yet</p>
+          <p class="empty-subtitle">When @{{ user.username }} posts {{ active_tab|replace('_', ' ') }}, they will appear right here.</p>
+        </div>
+      {% endif %}
+    </section>
+  {% endif %}
+</div>
+
+<!-- Moderation Report Modal -->
+{% if current_user.is_authenticated and not is_self %}
+  <div id="reportModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Report @{{ user.username }}</h3>
+        <button
+          type="button"
+          class="modal-close-btn"
+          onclick="document.getElementById('reportModal').style.display='none';"
+        >
+          &times;
+        </button>
+      </div>
+
+      <form method="POST" action="{{ url_for('profile.report_user', username=user.username) }}" class="modal-form">
+        <input type="hidden" name="content_type" value="user">
+        <input type="hidden" name="content_id" value="{{ user.id }}">
+
+        <div class="form-group">
+          <label for="reportReason" class="form-label">Reason for Report</label>
+          <textarea
+            id="reportReason"
+            name="reason"
+            rows="3"
+            class="form-textarea"
+            placeholder="Describe the harassment, impersonation, or campus policy violation..."
+            required
+          ></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            onclick="document.getElementById('reportModal').style.display='none';"
+          >
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary btn-danger">
+            Submit Report
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

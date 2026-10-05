@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block title %}Friend Roulette · Campus Utility{% endblock %}
+
+{% block content %}
+<div class="utility-layout">
+  <!-- 1. Header Card -->
+  <section class="utility-header-card">
+    <div class="utility-title-row">
+      <div class="utility-heading-group">
+        <h1 class="utility-page-title">
+          <span>🎲</span> Low-Pressure Friend Roulette
+        </h1>
+        <p class="utility-subtitle">
+          No dating app awkwardness. Instant platonic peer matching for silent KTU library study sessions, engineering workshop practicals, and cafeteria meals.
+        </p>
+      </div>
+
+      <div class="utility-header-actions">
+        <a href="{{ url_for('utility.get_courses') }}" class="btn btn-secondary">
+          🎓 Courses
+        </a>
+        <a href="{{ url_for('utility.get_skill_swaps') }}" class="btn btn-secondary">
+          🔄 Skill Swap
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Interactive Matcher Section -->
+  <section class="roulette-main-card">
+    {% if not current_user.is_authenticated %}
+      <div class="roulette-login-prompt">
+        <div class="roulette-hero-icon">🤝</div>
+        <h2>Join Verified Campus Friend Roulette</h2>
+        <p>Log in with your verified KTU student account to find an instant study or practical lab partner.</p>
+        <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg">
+          Log in with Student ID
+        </a>
+      </div>
+
+    {% elif active_request and active_request.status == 'matched' %}
+      <!-- ==================== MATCHED STATE ==================== -->
+      <div class="roulette-matched-card">
+        <div class="matched-badge">🎉 YOU'VE BEEN PAIRED!</div>
+        <h2 class="matched-title">Say hello to your new {{ active_request.activity_meta.label }}!</h2>
+
+        <div class="matched-partner-profile">
+          <div class="matched-avatar-circle">
+            {% if active_request.matched_user.avatar_url and active_request.matched_user.avatar_url != 'default_avatar.png' %}
+              <img
+                src="{{ url_for('static', filename='uploads/' + active_request.matched_user.avatar_url) }}"
+                alt="@{{ active_request.matched_user.username }}"
+                class="matched-avatar-img"
+              >
+            {% else %}
+              <div class="matched-avatar-fallback">
+                {{ active_request.matched_user.username[:2]|upper }}
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="matched-details">
+            <h3 class="matched-username">@{{ active_request.matched_user.username }}</h3>
+            <span class="matched-student-id">Student ID: {{ active_request.matched_user.student_id }}</span>
+            <span class="matched-activity-tag">
+              {{ active_request.activity_meta.icon }} {{ active_request.activity_meta.label }} · {{ active_request.time_slot_meta.label }}
+            </span>
+          </div>
+        </div>
+
+        <div class="matched-actions-row">
+          <a
+            href="{{ url_for('messaging.conversation', username=active_request.matched_user.username) }}"
+            class="btn btn-primary btn-lg btn-open-chat"
+          >
+            💬 Open Direct Chat with @{{ active_request.matched_user.username }}
+          </a>
+          <form method="POST" action="{{ url_for('utility.cancel_roulette') }}">
+            <button type="submit" class="btn btn-secondary">
+              Find Another Match
+            </button>
+          </form>
+        </div>
+      </div>
+
+    {% elif active_request and active_request.status == 'pending' %}
+      <!-- ==================== QUEUE SEARCHING STATE ==================== -->
+      <div class="roulette-searching-card">
+        <div class="radar-spinner-wrapper">
+          <div class="radar-pulse-ring ring-1"></div>
+          <div class="radar-pulse-ring ring-2"></div>
+          <div class="radar-center-icon">{{ active_request.activity_meta.icon }}</div>
+        </div>
+
+        <h2 class="searching-title">Searching for a {{ active_request.activity_meta.label }}...</h2>
+        <p class="searching-desc">
+          Looking for a student free in the <strong>{{ active_request.time_slot_meta.label }}</strong>.
+          We will automatically pair you and open a chat room as soon as someone joins!
+        </p>
+
+        <form method="POST" action="{{ url_for('utility.cancel_roulette') }}">
+          <button type="submit" class="btn btn-secondary btn-cancel-search">
+            ✕ Cancel Search & Leave Queue
+          </button>
+        </form>
+      </div>
+
+    {% else %}
+      <!-- ==================== JOIN QUEUE FORM ==================== -->
+      <div class="roulette-join-form-wrapper">
+        <h2 class="join-headline">What kind of companion are you looking for today?</h2>
+        <p class="join-subhead">Select your preferred activity and time slot. No awkward bios needed.</p>
+
+        <form method="POST" action="{{ url_for('utility.join_roulette') }}" class="roulette-form">
+          <!-- Activity Type Selection -->
+          <div class="form-group">
+            <label class="form-label font-bold">1. Select Activity:</label>
+            <div class="activity-picker-grid">
+              <label class="activity-radio-card">
+                <input type="radio" name="activity_type" value="study_buddy" checked>
+                <div class="radio-card-content">
+                  <span class="activity-icon">📖</span>
+                  <div class="activity-text">
+                    <strong class="activity-title">Study Buddy</strong>
+                    <span class="activity-caption">Quiet library grind & accountability</span>
+                  </div>
+                </div>
+              </label>
+
+              <label class="activity-radio-card">
+                <input type="radio" name="activity_type" value="lab_partner">
+                <div class="radio-card-content">
+                  <span class="activity-icon">🔬</span>
+                  <div class="activity-text">
+                    <strong class="activity-title">Lab & Workshop Partner</strong>
+                    <span class="activity-caption">Practicals at Multipurpose Engineering Lab & CS Labs</span>
+                  </div>
+                </div>
+              </label>
+
+              <label class="activity-radio-card">
+                <input type="radio" name="activity_type" value="dining_hall">
+                <div class="radio-card-content">
+                  <span class="activity-icon">🍽️</span>
+                  <div class="activity-text">
+                    <strong class="activity-title">Dining Hall Meal</strong>
+                    <span class="activity-caption">Casual lunch or dinner chats at the cafeteria</span>
+                  </div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Time Slot Selection -->
+          <div class="form-group">
+            <label class="form-label font-bold">2. Preferred Time Slot:</label>
+            <div class="timeslot-picker-row">
+              <label class="timeslot-radio-btn">
+                <input type="radio" name="time_slot" value="morning">
+                <span>🌅 Morning (8am - 12pm)</span>
+              </label>
+
+              <label class="timeslot-radio-btn">
+                <input type="radio" name="time_slot" value="afternoon">
+                <span>☀️ Afternoon (1pm - 5pm)</span>
+              </label>
+
+              <label class="timeslot-radio-btn">
+                <input type="radio" name="time_slot" value="evening" checked>
+                <span>🌙 Evening & Night (6pm - 10pm)</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="roulette-submit-row">
+            <button type="submit" class="btn btn-primary btn-lg btn-enter-roulette">
+              🎲 Enter Friend Roulette Queue
+            </button>
+          </div>
+        </form>
+      </div>
+    {% endif %}
+  </section>
+
+  <!-- 3. Live Queue Insights -->
+  <section class="roulette-stats-section">
+    <h3 class="stats-heading">Live Campus Queues Right Now</h3>
+    <div class="stats-cards-grid">
+      <div class="stat-box">
+        <span class="stat-emoji">📖</span>
+        <div class="stat-box-info">
+          <span class="stat-count">{{ queue_counts.study_buddy }}</span>
+          <span class="stat-name">Waiting for Study Buddy</span>
+        </div>
+      </div>
+      <div class="stat-box">
+        <span class="stat-emoji">🔬</span>
+        <div class="stat-box-info">
+          <span class="stat-count">{{ queue_counts.lab_partner }}</span>
+          <span class="stat-name">Waiting for Lab Partner</span>
+        </div>
+      </div>
+      <div class="stat-box">
+        <span class="stat-emoji">🍽️</span>
+        <div class="stat-box-info">
+          <span class="stat-count">{{ queue_counts.dining_hall }}</span>
+          <span class="stat-name">Waiting for Dining Pal</span>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

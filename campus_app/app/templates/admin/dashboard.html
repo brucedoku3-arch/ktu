@@ -1,0 +1,528 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Command Center · KTU Campus Safety{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+  <!-- Top High-Density Status Banner -->
+  <div class="admin-top-banner">
+    <div class="banner-left">
+      <div class="admin-avatar-shield">🛡️</div>
+      <div>
+        <div class="banner-title-row">
+          <h1 class="admin-title">KTU Safety & Moderation Command Center</h1>
+          <span class="super-admin-pill" title="Hardcoded System Super-Admin Authority">
+            👑 Super-Admin: <strong class="font-mono">{{ admin_email }}</strong>
+          </span>
+        </div>
+        <p class="admin-subtitle">
+          Koforidua Technical University · Dean of Student Affairs & Safety Oversight Console
+        </p>
+      </div>
+    </div>
+
+    <div class="banner-right">
+      <div class="system-health-indicator">
+        <span class="pulse-dot"></span>
+        <span class="health-label">System Health: Operational</span>
+      </div>
+      <div class="total-student-stat">
+        <span class="stat-num font-mono">{{ metrics.total_users }}</span>
+        <span class="stat-desc">Registered Students</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Metric Cards Grid -->
+  <div class="admin-metrics-grid">
+    <!-- Card 1: Pending Reports (Red Accent Badge) -->
+    <div class="metric-card metric-card-danger">
+      <div class="metric-top">
+        <span class="metric-label">Pending Reports</span>
+        <span class="metric-badge-red font-mono">{{ metrics.pending_reports }} Active</span>
+      </div>
+      <div class="metric-value font-mono">{{ metrics.pending_reports }}</div>
+      <div class="metric-sub">Flagged for community safety review</div>
+    </div>
+
+    <!-- Card 2: Banned / Suspended Students -->
+    <div class="metric-card metric-card-warning">
+      <div class="metric-top">
+        <span class="metric-label">Banned / Suspended Students</span>
+        <span class="metric-icon">⏸️</span>
+      </div>
+      <div class="metric-value font-mono">{{ metrics.suspended_users + metrics.banned_users }}</div>
+      <div class="metric-sub font-mono">
+        {{ metrics.suspended_users }} suspended · {{ metrics.banned_users }} permanent bans
+      </div>
+    </div>
+
+    <!-- Card 3: Active Vlogs & Confessions -->
+    <div class="metric-card">
+      <div class="metric-top">
+        <span class="metric-label">Active Vlogs & Confessions</span>
+        <span class="metric-icon">📹</span>
+      </div>
+      <div class="metric-value font-mono">{{ metrics.total_vlogs + metrics.total_confessions }}</div>
+      <div class="metric-sub font-mono">
+        {{ metrics.total_vlogs }} micro-vlogs · {{ metrics.total_confessions }} confessions
+      </div>
+    </div>
+
+    <!-- Card 4: Total Content Volume -->
+    <div class="metric-card">
+      <div class="metric-top">
+        <span class="metric-label">Total Campus Submissions</span>
+        <span class="metric-icon">📊</span>
+      </div>
+      <div class="metric-value font-mono">{{ metrics.total_posts + metrics.total_reviews + metrics.total_aux }}</div>
+      <div class="metric-sub font-mono">
+        {{ metrics.total_posts }} posts · {{ metrics.total_reviews }} course ratings · {{ metrics.total_aux }} aux
+      </div>
+    </div>
+  </div>
+
+  <!-- High-Density Navigation Tabs -->
+  <div class="admin-tabs-nav" role="tablist">
+    <button type="button" class="admin-tab active" onclick="switchAdminTab('queue')" id="tab-btn-queue">
+      📋 Moderation Queue ({{ metrics.pending_reports }})
+    </button>
+    <button type="button" class="admin-tab" onclick="switchAdminTab('users')" id="tab-btn-users">
+      👥 Student Directory ({{ metrics.total_users }})
+    </button>
+    <button type="button" class="admin-tab" onclick="switchAdminTab('audit')" id="tab-btn-audit">
+      📜 ModLog Audit Trail ({{ metrics.total_mod_actions }})
+    </button>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- TAB 1: MODERATION QUEUE WITH REVEALED TRUE AUTHOR ID              -->
+  <!-- ================================================================= -->
+  <div id="tab-queue" class="admin-tab-pane active">
+    <div class="admin-pane-header">
+      <div>
+        <h2 class="pane-title">Active Moderation Queue</h2>
+        <p class="pane-subtitle">
+          Under KTU safety laws, anonymous confessions & course reviews are anonymous to the student public,
+          but strictly decrypted here to reveal true student IDs for defamation, harassment, and cheat-ring audits.
+        </p>
+      </div>
+    </div>
+
+    {% if pending_reports %}
+      <div class="admin-table-wrapper">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Reported Item</th>
+              <th>Category</th>
+              <th>Flag Reason</th>
+              <th>Reported By</th>
+              <th>True Author Identity (Traced)</th>
+              <th>Timestamp</th>
+              <th class="text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for rep in pending_reports %}
+              <tr id="report-row-{{ rep.id }}" class="report-row">
+                <td class="reported-item-cell">
+                  <div class="item-title font-mono">
+                    #{{ rep.id }} · {{ rep.target_type|upper }} #{{ rep.target_id }}
+                  </div>
+                  <div class="item-preview" title="{{ rep.target_preview }}">
+                    "{{ rep.target_preview|truncate(65) }}"
+                  </div>
+                  {% if rep.details %}
+                    <div class="item-reporter-note">
+                      <span class="text-muted">Note:</span> {{ rep.details }}
+                    </div>
+                  {% endif %}
+                </td>
+
+                <td>
+                  <span class="target-badge target-{{ rep.target_type }}">
+                    {{ rep.category_label }}
+                  </span>
+                </td>
+
+                <td>
+                  <span class="reason-badge reason-{{ rep.reason }}">
+                    {{ rep.reason|replace('_', ' ')|capitalize }}
+                  </span>
+                </td>
+
+                <td>
+                  <div class="reporter-info">
+                    <span class="text-bold">@{{ rep.reporter_username }}</span>
+                    <span class="reporter-id font-mono">({{ rep.reporter_student_id }})</span>
+                  </div>
+                </td>
+
+                <!-- True Author Identity (Revealed for Anonymous Content) -->
+                <td class="true-author-cell">
+                  {% if rep.true_author %}
+                    <div class="author-trace-box {% if rep.true_author.is_anonymous %}trace-box-anon{% endif %}">
+                      <div class="trace-row-main">
+                        <span class="trace-student-id font-mono text-bold">{{ rep.true_author.student_id }}</span>
+                        {% if rep.true_author.is_anonymous %}
+                          <span class="trace-tag-anon">🔒 Publicly Anon</span>
+                        {% endif %}
+                      </div>
+                      <div class="trace-handle font-sm">
+                        @{{ rep.true_author.username }} <span class="font-mono text-muted">· User #{{ rep.true_author.id }}</span>
+                      </div>
+                      <div class="trace-email font-mono font-xs text-muted">
+                        {{ rep.true_author.email }}
+                      </div>
+                    </div>
+                  {% else %}
+                    <span class="text-muted italic">Author record deleted or unavailable</span>
+                  {% endif %}
+                </td>
+
+                <td class="text-muted font-sm font-mono whitespace-nowrap">
+                  {{ rep.created_at }}
+                </td>
+
+                <td class="actions-cell">
+                  <div class="action-btn-group">
+                    <button
+                      type="button"
+                      class="btn-mod-action btn-dismiss"
+                      title="Approve / Dismiss Report"
+                      onclick="sendModAction('{{ rep.target_type }}', {{ rep.target_id }}, 'dismiss_report', {{ rep.id }})"
+                    >
+                      ✓ Approve
+                    </button>
+
+                    <button
+                      type="button"
+                      class="btn-mod-action btn-delete"
+                      title="Permanently Delete Content"
+                      onclick="sendModAction('{{ rep.target_type }}', {{ rep.target_id }}, 'delete_content', {{ rep.id }})"
+                    >
+                      🗑️ Delete
+                    </button>
+
+                    <button
+                      type="button"
+                      class="btn-mod-action btn-suspend"
+                      title="Suspend Author for 7 Days"
+                      onclick="sendModAction('{{ rep.target_type }}', {{ rep.target_id }}, 'suspend_7_days', {{ rep.id }})"
+                    >
+                      ⏸️ Suspend 7d
+                    </button>
+
+                    <button
+                      type="button"
+                      class="btn-mod-action btn-ban"
+                      title="Permanently Ban User Account"
+                      onclick="sendModAction('{{ rep.target_type }}', {{ rep.target_id }}, 'permanent_ban', {{ rep.id }})"
+                    >
+                      ⛔ Ban
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="admin-empty-state">
+        <span class="empty-icon">🛡️</span>
+        <h3>Moderation Queue is Pristine</h3>
+        <p>Zero pending safety reports. All student interactions comply with KTU campus policies.</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- TAB 2: USER MANAGEMENT TAB                                        -->
+  <!-- ================================================================= -->
+  <div id="tab-users" class="admin-tab-pane">
+    <div class="admin-pane-header">
+      <div class="pane-header-flex">
+        <div>
+          <h2 class="pane-title">Student Directory & Account Oversight</h2>
+          <p class="pane-subtitle">
+            Search verified KTU student accounts by index number (Student ID), email, or username to issue warnings, suspensions, or permanent bans.
+          </p>
+        </div>
+        <div class="search-box-large">
+          <input
+            type="text"
+            id="studentSearchFilter"
+            placeholder="Search by Index No / Student ID, Email, or Handle..."
+            class="admin-search-input"
+            oninput="handleStudentSearch()"
+          >
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-table-wrapper">
+      <table class="admin-table" id="studentsTable">
+        <thead>
+          <tr>
+            <th>Index / Student ID</th>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Karma</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th class="text-right">Administrative Sanctions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in all_users %}
+            <tr
+              class="student-row"
+              data-search="{{ u.student_id|lower }} {{ u.username|lower }} {{ u.email|lower }}"
+            >
+              <td class="font-mono text-bold">{{ u.student_id }}</td>
+              <td>
+                <a href="{{ url_for('profile.view_profile', username=u.username) }}" class="user-link">
+                  @{{ u.username }}
+                </a>
+              </td>
+              <td class="font-mono text-muted font-sm">{{ u.email }}</td>
+              <td>
+                <span class="karma-pill {% if u.karma_score < 0 %}karma-neg{% endif %} font-mono">
+                  {{ u.karma_score }}
+                </span>
+              </td>
+              <td>
+                {% if u.is_admin %}
+                  <span class="role-badge role-admin">Admin</span>
+                {% else %}
+                  <span class="role-badge role-student">Student</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if u.is_banned %}
+                  <span class="status-badge status-banned">Banned</span>
+                {% elif u.is_suspended %}
+                  <span class="status-badge status-suspended">
+                    Suspended {% if u.suspension_until %}(until {{ u.suspension_until.strftime('%b %d') }}){% endif %}
+                  </span>
+                {% else %}
+                  <span class="status-badge status-active">Active</span>
+                {% endif %}
+              </td>
+              <td class="actions-cell">
+                <div class="action-btn-group">
+                  {% if u.is_banned %}
+                    <button
+                      type="button"
+                      class="btn-mod-action btn-dismiss"
+                      onclick="directStudentAction({{ u.id }}, 'unban')"
+                    >
+                      Lift Ban
+                    </button>
+                  {% elif u.is_suspended %}
+                    <button
+                      type="button"
+                      class="btn-mod-action btn-dismiss"
+                      onclick="directStudentAction({{ u.id }}, 'unsuspend')"
+                    >
+                      Lift Suspension
+                    </button>
+                    <button
+                      type="button"
+                      class="btn-mod-action btn-ban"
+                      onclick="directStudentAction({{ u.id }}, 'ban')"
+                    >
+                      Ban
+                    </button>
+                  {% else %}
+                    <button
+                      type="button"
+                      class="btn-mod-action btn-suspend"
+                      onclick="sendModAction('user', {{ u.id }}, 'suspend_7_days')"
+                    >
+                      Suspend 7d
+                    </button>
+                    <button
+                      type="button"
+                      class="btn-mod-action btn-ban"
+                      onclick="directStudentAction({{ u.id }}, 'ban')"
+                    >
+                      Ban
+                    </button>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- TAB 3: AUDIT TRAIL                                                -->
+  <!-- ================================================================= -->
+  <div id="tab-audit" class="admin-tab-pane">
+    <div class="admin-pane-header">
+      <h2 class="pane-title">Moderation Action Audit Log (ModLog)</h2>
+      <p class="pane-subtitle">
+        Immutable record of administrative enforcement operations executed under institutional safety oversight.
+      </p>
+    </div>
+
+    {% if recent_mod_logs %}
+      <div class="admin-table-wrapper">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Log ID</th>
+              <th>Staff Admin</th>
+              <th>Action Executed</th>
+              <th>Target</th>
+              <th>Enforcement Rationale</th>
+              <th>Timestamp</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for log in recent_mod_logs %}
+              <tr>
+                <td class="font-mono text-muted">#{{ log.id }}</td>
+                <td>
+                  <span class="text-bold">@{{ log.admin.username if log.admin else 'System' }}</span>
+                </td>
+                <td>
+                  <span class="action-badge action-{{ log.action }}">
+                    {{ log.action|replace('_', ' ')|upper }}
+                  </span>
+                </td>
+                <td class="font-mono">
+                  {{ log.target_type }} #{{ log.target_id }}
+                </td>
+                <td class="log-reason-cell">
+                  {{ log.reason_given or 'Enforcement logged without notes.' }}
+                </td>
+                <td class="text-muted font-sm font-mono">
+                  {{ log.timestamp.strftime('%b %d, %Y · %H:%M:%S') }}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="admin-empty-state">
+        <span class="empty-icon">📜</span>
+        <h3>Zero Moderation Logs</h3>
+        <p>No moderation actions have been recorded yet.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+/**
+ * Admin Command Center Controller
+ * Communicates with POST /admin/action for atomic moderation executions.
+ */
+function switchAdminTab(tabKey) {
+  document.querySelectorAll('.admin-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.admin-tab-pane').forEach(p => p.classList.remove('active'));
+
+  const btn = document.getElementById('tab-btn-' + tabKey);
+  const pane = document.getElementById('tab-' + tabKey);
+  if (btn && pane) {
+    btn.classList.add('active');
+    pane.classList.add('active');
+  }
+}
+
+async function sendModAction(targetType, targetId, action, reportId = null) {
+  const confirmPrompts = {
+    'delete_content': 'Permanently delete this reported content from KTU servers?',
+    'suspend_7_days': 'Suspend this student account for 7 days?',
+    'permanent_ban': 'PERMANENTLY BAN this student account from KTU platform?',
+    'dismiss_report': 'Approve and dismiss this safety report?'
+  };
+
+  if (confirmPrompts[action] && !confirm(confirmPrompts[action])) {
+    return;
+  }
+
+  const payload = {
+    target_type: targetType,
+    target_id: targetId,
+    action: action,
+    report_id: reportId
+  };
+
+  try {
+    const res = await fetch('/admin/action', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    if (res.ok && data.status === 'success') {
+      alert(`Moderation Action '${data.action_taken}' successfully committed.`);
+      if (reportId) {
+        const row = document.getElementById(`report-row-${reportId}`);
+        if (row) {
+          row.style.opacity = '0.3';
+          setTimeout(() => row.remove(), 400);
+        }
+      } else {
+        location.reload();
+      }
+    } else {
+      alert(data.message || 'Error committing moderation action.');
+    }
+  } catch (err) {
+    alert('Network error communicating with moderation server.');
+  }
+}
+
+async function directStudentAction(userId, action) {
+  const confirmMsg = action === 'ban'
+    ? 'Are you sure you want to permanently BAN this student account?'
+    : `Execute ${action} on this account?`;
+  if (!confirm(confirmMsg)) return;
+
+  try {
+    const res = await fetch(`/admin/users/${userId}/${action}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: JSON.stringify({})
+    });
+    const data = await res.json();
+    alert(data.message || 'Account status updated.');
+    location.reload();
+  } catch (err) {
+    alert('Network error.');
+  }
+}
+
+function handleStudentSearch() {
+  const term = document.getElementById('studentSearchFilter').value.toLowerCase().trim();
+  const rows = document.querySelectorAll('#studentsTable tbody tr.student-row');
+  rows.forEach(r => {
+    const searchData = r.getAttribute('data-search') || '';
+    if (!term || searchData.includes(term)) {
+      r.style.display = '';
+    } else {
+      r.style.display = 'none';
+    }
+  });
+}
+</script>
+{% endblock %}

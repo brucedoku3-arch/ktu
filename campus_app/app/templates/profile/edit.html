@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Student Profile · CampusSocial{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-card edit-profile-card">
+    <div class="auth-header">
+      <h1 class="auth-title">Edit Campus Profile</h1>
+      <p class="auth-subtitle">Update your profile avatar and short bio visible to other students.</p>
+    </div>
+
+    <form
+      method="POST"
+      action="{{ url_for('profile.edit_profile') }}"
+      enctype="multipart/form-data"
+      class="auth-form"
+      id="editProfileForm"
+    >
+      <!-- Current Avatar & File Input -->
+      <div class="avatar-edit-section">
+        <div class="avatar-preview-box">
+          {% if user.avatar_url and user.avatar_url != 'default_avatar.png' %}
+            <img
+              src="{{ url_for('static', filename='uploads/' + user.avatar_url) }}"
+              alt="Current avatar"
+              id="avatarPreviewImg"
+              class="avatar-large-preview"
+              onerror="this.src='{{ url_for('static', filename='uploads/avatars/default_avatar.png') }}';"
+            >
+          {% else %}
+            <div id="avatarFallback" class="avatar-large-fallback">
+              {{ user.username[:2]|upper }}
+            </div>
+            <img
+              id="avatarPreviewImg"
+              class="avatar-large-preview"
+              style="display: none;"
+              alt="Preview"
+            >
+          {% endif %}
+        </div>
+
+        <div class="avatar-input-controls">
+          <label for="avatar" class="form-label">Upload New Avatar</label>
+          <input
+            type="file"
+            id="avatar"
+            name="avatar"
+            accept=".png, .jpg, .jpeg, .webp"
+            class="file-input-control"
+          >
+          <span class="field-hint">PNG, JPG, or WEBP. Max upload ceiling: 16 MB.</span>
+        </div>
+      </div>
+
+      <!-- Verified Student ID (Read Only) -->
+      <div class="form-group">
+        <label class="form-label">Verified Student ID</label>
+        <input
+          type="text"
+          value="{{ user.student_id }}"
+          disabled
+          class="form-input form-input-disabled font-mono"
+        >
+        <span class="field-hint">Student ID verification is permanent and managed by campus registry.</span>
+      </div>
+
+      <!-- Campus Username (Read Only) -->
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input
+          type="text"
+          value="@{{ user.username }}"
+          disabled
+          class="form-input form-input-disabled font-mono"
+        >
+      </div>
+
+      <!-- Bio Textarea with Live Character Count -->
+      <div class="form-group">
+        <div class="label-row">
+          <label for="bio" class="form-label">Profile Bio</label>
+          <span id="bioCharCounter" class="char-counter">0 / 160</span>
+        </div>
+        <textarea
+          id="bio"
+          name="bio"
+          rows="3"
+          maxlength="160"
+          placeholder="Major, class year, campus interests, or student clubs..."
+          class="form-textarea"
+        >{{ user.bio or '' }}</textarea>
+        <span class="field-hint">Brief student bio displayed on your profile and hover cards.</span>
+      </div>
+
+      <div class="form-actions-row">
+        <a
+          href="{{ url_for('profile.view_profile', username=user.username) }}"
+          class="btn btn-secondary"
+        >
+          Cancel
+        </a>
+        <button type="submit" class="btn btn-primary">
+          Save Changes
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  (function() {
+    const bioTextarea = document.getElementById('bio');
+    const counter = document.getElementById('bioCharCounter');
+    const avatarInput = document.getElementById('avatar');
+    const previewImg = document.getElementById('avatarPreviewImg');
+    const fallbackBox = document.getElementById('avatarFallback');
+
+    function updateCounter() {
+      if (bioTextarea && counter) {
+        const count = bioTextarea.value.length;
+        counter.textContent = `${count} / 160`;
+        if (count > 150) {
+          counter.classList.add('char-counter-warn');
+        } else {
+          counter.classList.remove('char-counter-warn');
+        }
+      }
+    }
+
+    if (bioTextarea) {
+      bioTextarea.addEventListener('input', updateCounter);
+      updateCounter();
+    }
+
+    if (avatarInput && previewImg) {
+      avatarInput.addEventListener('change', function() {
+        const file = this.files && this.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            previewImg.src = e.target.result;
+            previewImg.style.display = 'block';
+            if (fallbackBox) {
+              fallbackBox.style.display = 'none';
+            }
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    }
+  })();
+</script>
+{% endblock %}

@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}Casual Skill Swapping · Campus Utility{% endblock %}
+
+{% block content %}
+<div class="utility-layout">
+  <!-- 1. Header Card -->
+  <section class="utility-header-card">
+    <div class="utility-title-row">
+      <div class="utility-heading-group">
+        <h1 class="utility-page-title">
+          <span>🔄</span> Casual Skill Swapping Notice Board
+        </h1>
+        <p class="utility-subtitle">
+          No money required. Trade haircuts, laundry tokens, calculus tutoring, and essay proofreading with fellow students.
+        </p>
+      </div>
+
+      <div class="utility-header-actions">
+        <a href="{{ url_for('utility.get_courses') }}" class="btn btn-secondary">
+          🎓 Lecture Reviews
+        </a>
+        <a href="{{ url_for('utility.roulette_matcher') }}" class="btn btn-secondary">
+          🎲 Friend Roulette
+        </a>
+        {% if current_user.is_authenticated %}
+          <button
+            type="button"
+            class="btn btn-primary"
+            onclick="document.getElementById('newSwapModal').style.display='flex';"
+          >
+            + Post Swap Offer
+          </button>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Category Pill Filter Bar -->
+    <nav class="category-pills-bar" aria-label="Skill Swap Categories">
+      {% for cat in categories %}
+        <a
+          href="{{ url_for('utility.get_skill_swaps', category=cat.slug, status=active_status) }}"
+          class="cat-pill-btn {% if active_category == cat.slug %}active{% endif %}"
+        >
+          <span>{{ cat.icon }}</span>
+          <span>{{ cat.label }}</span>
+        </a>
+      {% endfor %}
+    </nav>
+  </section>
+
+  <!-- 2. Active Swaps Stream -->
+  <section class="swaps-grid-section">
+    {% if swaps and swaps|length > 0 %}
+      <div class="swaps-grid">
+        {% for swap in swaps %}
+          {% set meta = swap.category_meta %}
+          <article class="swap-card {% if swap.status == 'fulfilled' %}is-fulfilled{% endif %}" id="swap-{{ swap.id }}">
+            <div class="swap-header-line">
+              <span class="swap-category-badge" style="border-color: {{ meta.color }}; color: {{ meta.color }};">
+                {{ meta.icon }} {{ meta.label }}
+              </span>
+              <time class="swap-time">{{ swap.created_at.strftime('%b %d, %I:%M %p') }}</time>
+            </div>
+
+            <h3 class="swap-title">{{ swap.title }}</h3>
+
+            <!-- Barter Details: Offering vs Seeking -->
+            <div class="swap-exchange-box">
+              <div class="exchange-item offering-box">
+                <span class="exchange-label">I CAN OFFER:</span>
+                <p class="exchange-text">{{ swap.offering }}</p>
+              </div>
+
+              <div class="exchange-divider">
+                <span>⇄</span>
+              </div>
+
+              <div class="exchange-item seeking-box">
+                <span class="exchange-label">IN RETURN FOR:</span>
+                <p class="exchange-text">{{ swap.seeking }}</p>
+              </div>
+            </div>
+
+            <!-- Footer: Author & Direct Action -->
+            <div class="swap-footer-row">
+              <div class="swap-author-info">
+                <a href="{{ url_for('profile.view_profile', username=swap.user.username) }}" class="swap-author-link">
+                  {% if swap.user.avatar_url and swap.user.avatar_url != 'default_avatar.png' %}
+                    <img
+                      src="{{ url_for('static', filename='uploads/' + swap.user.avatar_url) }}"
+                      alt="@{{ swap.user.username }}"
+                      class="swap-author-avatar"
+                    >
+                  {% else %}
+                    <span class="swap-avatar-fallback">{{ swap.user.username[:2]|upper }}</span>
+                  {% endif %}
+                  <div>
+                    <span class="swap-username">@{{ swap.user.username }}</span>
+                    <span class="swap-student-id">{{ swap.user.student_id }}</span>
+                  </div>
+                </a>
+              </div>
+
+              <div class="swap-action-buttons">
+                {% if current_user.is_authenticated and current_user.id == swap.user_id %}
+                  {% if swap.status == 'open' %}
+                    <form method="POST" action="{{ url_for('utility.fulfill_skill_swap', swap_id=swap.id) }}">
+                      <button type="submit" class="btn btn-secondary btn-sm">
+                        ✓ Mark Fulfilled
+                      </button>
+                    </form>
+                  {% else %}
+                    <span class="badge-fulfilled">Fulfilled</span>
+                  {% endif %}
+                {% elif current_user.is_authenticated %}
+                  <a
+                    href="{{ url_for('messaging.conversation', username=swap.user.username) }}"
+                    class="btn btn-primary btn-sm btn-swap-message"
+                  >
+                    💬 Message for Swap
+                  </a>
+                {% else %}
+                  <a href="{{ url_for('auth.login') }}" class="btn btn-secondary btn-sm">
+                    Log in to Trade
+                  </a>
+                {% endif %}
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-utility-card">
+        <div class="empty-utility-icon">🧺</div>
+        <h3>No skill swaps found</h3>
+        <p>No student barter listings match this category. Post your offer to kick off trade!</p>
+        {% if current_user.is_authenticated %}
+          <button
+            type="button"
+            class="btn btn-primary"
+            onclick="document.getElementById('newSwapModal').style.display='flex';"
+          >
+            Post a Skill Swap Now
+          </button>
+        {% endif %}
+      </div>
+    {% endif %}
+  </section>
+</div>
+
+<!-- New Skill Swap Modal -->
+<div
+  id="newSwapModal"
+  class="modal-overlay"
+  style="display: none;"
+  onclick="if(event.target === this) this.style.display='none';"
+>
+  <div class="modal-dialog-card">
+    <div class="modal-header-row">
+      <h3 class="modal-dialog-title">🔄 Post a Skill Swap</h3>
+      <button
+        type="button"
+        class="btn-close-modal"
+        onclick="document.getElementById('newSwapModal').style.display='none';"
+        aria-label="Close modal"
+      >
+        &times;
+      </button>
+    </div>
+
+    <form method="POST" action="{{ url_for('utility.create_skill_swap') }}" class="modal-form-body">
+      <div class="form-group">
+        <label for="swapTitleInput" class="form-label">Headline / Title:</label>
+        <input
+          type="text"
+          id="swapTitleInput"
+          name="title"
+          class="form-control"
+          placeholder="e.g. Barber fade for laundry tokens, or Calculus tutoring"
+          required
+          maxlength="120"
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="categorySelect" class="form-label">Category:</label>
+        <select id="categorySelect" name="category" class="form-control">
+          <option value="haircut">✂️ Haircut & Styling</option>
+          <option value="laundry">🧺 Laundry Tokens & Help</option>
+          <option value="tutoring">📚 Academic Tutoring</option>
+          <option value="proofreading">📝 Essay & Report Proofreading</option>
+          <option value="other" selected>🤝 Other Student Barter</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="offeringInput" class="form-label">What You Are Offering:</label>
+        <textarea
+          id="offeringInput"
+          name="offering"
+          class="form-control"
+          rows="2"
+          placeholder="What skill, item, or favor can you provide?"
+          required
+          maxlength="200"
+        ></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="seekingInput" class="form-label">What You Are Seeking in Return:</label>
+        <textarea
+          id="seekingInput"
+          name="seeking"
+          class="form-control"
+          rows="2"
+          placeholder="What favor or assistance do you need from a peer?"
+          required
+          maxlength="200"
+        ></textarea>
+      </div>
+
+      <div class="modal-actions-row">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          onclick="document.getElementById('newSwapModal').style.display='none';"
+        >
+          Cancel
+        </button>
+        <button type="submit" class="btn btn-primary">
+          Publish Swap Offer
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

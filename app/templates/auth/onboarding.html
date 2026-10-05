@@ -1,0 +1,1155 @@
+{% extends "base.html" %}
+
+{% block title %}Student Onboarding · KTU CampusSocial{% endblock %}
+
+{% block content %}
+<div class="onboarding-page-wrapper">
+  <div class="onboarding-card">
+    
+    <!-- Top Stepper Header -->
+    <header class="onboarding-stepper-header">
+      <div class="onboarding-meta-tag">
+        <span class="ktu-flag">🇬🇭</span>
+        <span>KTU Campus Verification · 2026 Academic Year</span>
+      </div>
+      <h1 class="onboarding-title">Complete Your Student Profile</h1>
+      <p class="onboarding-subtitle">
+        Personalize your experience on KTU CampusSocial to discover course mates, study groups, aux battles, and campus events.
+      </p>
+
+      <!-- Step Indicator Bar -->
+      <div class="stepper-progress-container" aria-label="Onboarding Progress">
+        <div class="stepper-steps-row">
+          <div class="step-indicator active" id="stepIndicator1">
+            <span class="step-num">1</span>
+            <span class="step-label">Basic Info</span>
+          </div>
+          <div class="step-divider" id="stepDivider1"></div>
+          <div class="step-indicator" id="stepIndicator2">
+            <span class="step-num">2</span>
+            <span class="step-label">Academics</span>
+          </div>
+          <div class="step-divider" id="stepDivider2"></div>
+          <div class="step-indicator" id="stepIndicator3">
+            <span class="step-num">3</span>
+            <span class="step-label">Avatar & Bio</span>
+          </div>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="stepperProgressFill" style="width: 33.33%;"></div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Onboarding Multi-Step Form -->
+    <form
+      method="POST"
+      action="{{ url_for('auth.onboarding') }}"
+      enctype="multipart/form-data"
+      id="onboardingForm"
+      class="onboarding-form"
+      novalidate
+    >
+      <!-- ===================================================================
+           STEP 1: BASIC STUDENT INFO (GENDER)
+           =================================================================== -->
+      <section class="onboarding-step-pane active" id="stepPane1">
+        <div class="step-pane-header">
+          <div class="pane-badge">Step 1 of 3</div>
+          <h2 class="pane-title">What is your gender?</h2>
+          <p class="pane-description">
+            Used for campus roommate matching, peer roulette filters, and personalized social circles.
+          </p>
+        </div>
+
+        <div class="gender-selection-grid" role="radiogroup" aria-label="Select Gender">
+          <!-- Male -->
+          <label class="gender-option-card" for="genderMale">
+            <input
+              type="radio"
+              name="gender"
+              id="genderMale"
+              value="Male"
+              class="gender-radio-input"
+              {% if selected_gender == 'Male' %}checked{% endif %}
+              required
+            >
+            <div class="gender-card-inner">
+              <span class="gender-icon">👨</span>
+              <div class="gender-info">
+                <span class="gender-title">Male</span>
+                <span class="gender-subtext">He / Him</span>
+              </div>
+              <div class="selection-check-indicator">✓</div>
+            </div>
+          </label>
+
+          <!-- Female -->
+          <label class="gender-option-card" for="genderFemale">
+            <input
+              type="radio"
+              name="gender"
+              id="genderFemale"
+              value="Female"
+              class="gender-radio-input"
+              {% if selected_gender == 'Female' %}checked{% endif %}
+              required
+            >
+            <div class="gender-card-inner">
+              <span class="gender-icon">👩</span>
+              <div class="gender-info">
+                <span class="gender-title">Female</span>
+                <span class="gender-subtext">She / Her</span>
+              </div>
+              <div class="selection-check-indicator">✓</div>
+            </div>
+          </label>
+
+          <!-- Prefer not to say -->
+          <label class="gender-option-card" for="genderNeutral">
+            <input
+              type="radio"
+              name="gender"
+              id="genderNeutral"
+              value="Prefer not to say"
+              class="gender-radio-input"
+              {% if selected_gender == 'Prefer not to say' %}checked{% endif %}
+              required
+            >
+            <div class="gender-card-inner">
+              <span class="gender-icon">✨</span>
+              <div class="gender-info">
+                <span class="gender-title">Prefer not to say</span>
+                <span class="gender-subtext">Private student preference</span>
+              </div>
+              <div class="selection-check-indicator">✓</div>
+            </div>
+          </label>
+        </div>
+
+        <div class="step-validation-msg" id="step1Error" style="display: none;">
+          Please select an option to proceed.
+        </div>
+
+        <!-- Step 1 Actions -->
+        <div class="step-actions-footer">
+          <div class="step-action-placeholder"></div>
+          <button
+            type="button"
+            class="btn btn-primary btn-step-nav"
+            id="btnGoToStep2"
+          >
+            Continue to Academic Details &rarr;
+          </button>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           STEP 2: ACADEMIC DETAILS (LEVEL, FACULTY, PROGRAM ALIGNED WITH KTU 2026)
+           =================================================================== -->
+      <section class="onboarding-step-pane" id="stepPane2">
+        <div class="step-pane-header">
+          <div class="pane-badge">Step 2 of 3</div>
+          <h2 class="pane-title">Your KTU Academic Standing</h2>
+          <p class="pane-description">
+            Connect directly with classmates taking the same courses, access lecture updates, and join departmental forums.
+          </p>
+        </div>
+
+        <!-- Academic Level Selection -->
+        <div class="form-group mb-4">
+          <label class="form-label">
+            Academic Year / Level <span class="required-mark">*</span>
+          </label>
+          <div class="level-pills-grid" role="radiogroup" aria-label="Academic Level">
+            <label class="level-pill-card">
+              <input
+                type="radio"
+                name="level"
+                value="100"
+                class="level-radio-input"
+                {% if selected_level == '100' %}checked{% endif %}
+              >
+              <div class="level-pill-inner">
+                <span class="level-number">Level 100</span>
+                <span class="level-desc">Freshman</span>
+              </div>
+            </label>
+
+            <label class="level-pill-card">
+              <input
+                type="radio"
+                name="level"
+                value="200"
+                class="level-radio-input"
+                {% if selected_level == '200' or not selected_level %}checked{% endif %}
+              >
+              <div class="level-pill-inner">
+                <span class="level-number">Level 200</span>
+                <span class="level-desc">Sophomore</span>
+              </div>
+            </label>
+
+            <label class="level-pill-card">
+              <input
+                type="radio"
+                name="level"
+                value="300"
+                class="level-radio-input"
+                {% if selected_level == '300' %}checked{% endif %}
+              >
+              <div class="level-pill-inner">
+                <span class="level-number">Level 300</span>
+                <span class="level-desc">Junior</span>
+              </div>
+            </label>
+
+            <label class="level-pill-card">
+              <input
+                type="radio"
+                name="level"
+                value="400"
+                class="level-radio-input"
+                {% if selected_level == '400' %}checked{% endif %}
+              >
+              <div class="level-pill-inner">
+                <span class="level-number">Level 400</span>
+                <span class="level-desc">Senior / Final</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Faculty / Department Selection -->
+        <div class="form-group mb-4">
+          <label for="facultySelect" class="form-label">
+            Faculty / School <span class="required-mark">*</span>
+          </label>
+          <div class="select-wrapper">
+            <select
+              id="facultySelect"
+              name="faculty"
+              class="form-select"
+              required
+            >
+              <option value="" disabled {% if not selected_faculty %}selected{% endif %}>
+                Select your KTU Faculty...
+              </option>
+              {% for fac, progs in catalog.items() %}
+                <option
+                  value="{{ fac }}"
+                  {% if selected_faculty == fac %}selected{% endif %}
+                >
+                  {{ fac }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <span class="field-hint">Koforidua Technical University accredited faculty in 2026.</span>
+        </div>
+
+        <!-- Course / Program of Study (Dynamically Populated) -->
+        <div class="form-group mb-4">
+          <label for="courseSelect" class="form-label">
+            Program / Course of Study <span class="required-mark">*</span>
+          </label>
+          <div class="select-wrapper">
+            <select
+              id="courseSelect"
+              name="course"
+              class="form-select"
+              required
+            >
+              <option value="" disabled {% if not selected_course %}selected{% endif %}>
+                First choose a faculty above...
+              </option>
+              {% if selected_course %}
+                <option value="{{ selected_course }}" selected>{{ selected_course }}</option>
+              {% endif %}
+            </select>
+          </div>
+          <span class="field-hint">KTU 2026 degree (B.Tech) or Higher National Diploma (HND) program.</span>
+        </div>
+
+        <div class="step-validation-msg" id="step2Error" style="display: none;">
+          Please select your academic level, faculty, and program of study.
+        </div>
+
+        <!-- Step 2 Actions -->
+        <div class="step-actions-footer">
+          <button
+            type="button"
+            class="btn btn-secondary btn-step-nav"
+            id="btnBackToStep1"
+          >
+            &larr; Back
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary btn-step-nav"
+            id="btnGoToStep3"
+          >
+            Continue to Avatar & Bio &rarr;
+          </button>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           STEP 3: AVATAR & BIO (OPTIONAL)
+           =================================================================== -->
+      <section class="onboarding-step-pane" id="stepPane3">
+        <div class="step-pane-header">
+          <div class="pane-badge">Step 3 of 3 · Optional</div>
+          <h2 class="pane-title">Profile Picture & Campus Headline</h2>
+          <p class="pane-description">
+            Put a face to your campus name or choose an avatar preset. You can update this anytime.
+          </p>
+        </div>
+
+        <!-- Avatar Selection / Photo Upload -->
+        <div class="avatar-setup-container mb-4">
+          <div class="avatar-preview-column">
+            <div class="current-avatar-preview" id="avatarPreviewContainer">
+              <img
+                src="{{ url_for('static', filename='uploads/avatars/default_avatar.png') }}"
+                alt="Selected Profile Avatar"
+                id="avatarPreviewImg"
+                onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=ktu';"
+              >
+            </div>
+            <label class="btn btn-secondary btn-upload-avatar" for="avatarFileInput">
+              📷 Upload Photo
+            </label>
+            <input
+              type="file"
+              id="avatarFileInput"
+              name="avatar_file"
+              accept="image/png,image/jpeg,image/webp"
+              class="sr-only"
+            >
+          </div>
+
+          <div class="avatar-presets-column">
+            <span class="presets-label">Or choose a campus avatar preset:</span>
+            <input type="hidden" name="avatar_url" id="selectedAvatarPreset" value="">
+
+            <div class="preset-avatars-grid">
+              <button
+                type="button"
+                class="preset-avatar-btn active"
+                data-preset="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"
+                title="Student Tech Scholar"
+              >
+                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80" alt="Preset 1">
+              </button>
+
+              <button
+                type="button"
+                class="preset-avatar-btn"
+                data-preset="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80"
+                title="Engineering Lead"
+              >
+                <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=80" alt="Preset 2">
+              </button>
+
+              <button
+                type="button"
+                class="preset-avatar-btn"
+                data-preset="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80"
+                title="Applied Science Creator"
+              >
+                <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&auto=format&fit=crop&q=80" alt="Preset 3">
+              </button>
+
+              <button
+                type="button"
+                class="preset-avatar-btn"
+                data-preset="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80"
+                title="Campus Aux DJ"
+              >
+                <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&auto=format&fit=crop&q=80" alt="Preset 4">
+              </button>
+
+              <button
+                type="button"
+                class="preset-avatar-btn"
+                data-preset="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80"
+                title="Business & Management Scholar"
+              >
+                <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=80&auto=format&fit=crop&q=80" alt="Preset 5">
+              </button>
+
+              <button
+                type="button"
+                class="preset-avatar-btn"
+                data-preset="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80"
+                title="Techie & Coding Enthusiast"
+              >
+                <img src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=80&auto=format&fit=crop&q=80" alt="Preset 6">
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Campus Headline / Short Bio -->
+        <div class="form-group mb-4">
+          <div class="label-row">
+            <label for="bioInput" class="form-label">
+              Short Bio / Campus Headline <span class="text-muted">(Optional)</span>
+            </label>
+            <span class="char-counter" id="bioCharCounter">0 / 160</span>
+          </div>
+          <textarea
+            id="bioInput"
+            name="bio"
+            rows="3"
+            class="form-textarea"
+            placeholder="e.g. Level 200 Computer Science student. Building open source tools & exploring KTU campus life 💻🎧"
+            maxlength="160"
+          >{{ bio|default('') }}</textarea>
+          
+          <!-- Quick Clickable Headline Suggestions -->
+          <div class="bio-suggestions-row">
+            <span class="suggestion-label">Quick fill:</span>
+            <button type="button" class="suggestion-chip" onclick="fillBio('Level 200 Tech Enthusiast | AI Club Member 💻⚡')">
+              + Tech Enthusiast
+            </button>
+            <button type="button" class="suggestion-chip" onclick="fillBio('Engineering student & Campus Aux Battle challenger 🎶⚡')">
+              + Aux Challenger
+            </button>
+            <button type="button" class="suggestion-chip" onclick="fillBio('Studying hard at KTU Main Library | Ready to collaborate 📚✨')">
+              + Study Group
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 3 Actions -->
+        <div class="step-actions-footer">
+          <button
+            type="button"
+            class="btn btn-secondary btn-step-nav"
+            id="btnBackToStep2"
+          >
+            &larr; Back
+          </button>
+          <button
+            type="submit"
+            class="btn btn-primary btn-step-nav btn-finish-onboarding"
+            id="btnFinishOnboarding"
+          >
+            🎉 Finish & Enter Campus Feed
+          </button>
+        </div>
+      </section>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<style>
+  /* ==========================================================================
+     High-End Onboarding Flow Stylesheet
+     1px clean borders, zero-pill discipline, WCAG AA contrast, 44px min touch
+     ========================================================================== */
+  .onboarding-page-wrapper {
+    max-width: 680px;
+    margin: 20px auto 60px;
+    padding: 0 16px;
+  }
+
+  .onboarding-card {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 32px 28px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  @media (max-width: 540px) {
+    .onboarding-card {
+      padding: 24px 16px;
+    }
+  }
+
+  .onboarding-meta-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px;
+    background-color: var(--color-surface-subtle);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    margin-bottom: 12px;
+  }
+
+  .onboarding-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--color-text);
+    margin: 0 0 6px;
+  }
+
+  .onboarding-subtitle {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    margin: 0 0 24px;
+    line-height: 1.45;
+  }
+
+  /* Stepper Progress Bar */
+  .stepper-progress-container {
+    margin-bottom: 28px;
+  }
+
+  .stepper-steps-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .step-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--color-text-subtle);
+  }
+
+  .step-indicator.active {
+    color: var(--color-primary);
+  }
+
+  .step-indicator.completed {
+    color: var(--color-success);
+  }
+
+  .step-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    background-color: var(--color-surface-subtle);
+    border: 1px solid var(--color-border);
+  }
+
+  .step-indicator.active .step-num {
+    background-color: var(--color-primary);
+    color: #ffffff;
+    border-color: var(--color-primary);
+  }
+
+  .step-indicator.completed .step-num {
+    background-color: var(--color-success);
+    color: #ffffff;
+    border-color: var(--color-success);
+  }
+
+  .step-divider {
+    flex: 1;
+    height: 1px;
+    background-color: var(--color-border);
+    margin: 0 12px;
+  }
+
+  .progress-track {
+    width: 100%;
+    height: 4px;
+    background-color: var(--color-surface-subtle);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background-color: var(--color-primary);
+    transition: width 0.3s ease;
+  }
+
+  /* Pane toggling */
+  .onboarding-step-pane {
+    display: none;
+    flex-direction: column;
+    animation: fadeIn 0.2s ease-in-out;
+  }
+
+  .onboarding-step-pane.active {
+    display: flex;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .step-pane-header {
+    margin-bottom: 20px;
+  }
+
+  .pane-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-primary);
+    margin-bottom: 4px;
+  }
+
+  .pane-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin: 0 0 4px;
+    color: var(--color-text);
+  }
+
+  .pane-description {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+    margin: 0;
+    line-height: 1.45;
+  }
+
+  /* Gender Selection Grid */
+  .gender-selection-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  @media (min-width: 520px) {
+    .gender-selection-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  .gender-option-card {
+    position: relative;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .gender-radio-input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .gender-card-inner {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 16px 14px;
+    background-color: var(--color-surface);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 8px;
+    min-height: 120px;
+    justify-content: center;
+    position: relative;
+    transition: all 0.15s ease;
+  }
+
+  .gender-option-card:hover .gender-card-inner {
+    border-color: var(--color-border-hover);
+    background-color: var(--color-surface-subtle);
+  }
+
+  .gender-radio-input:checked + .gender-card-inner {
+    border-color: var(--color-primary);
+    background-color: rgba(79, 70, 229, 0.04);
+    box-shadow: 0 0 0 1px var(--color-primary);
+  }
+
+  .gender-icon {
+    font-size: 2rem;
+    line-height: 1;
+  }
+
+  .gender-title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  .gender-subtext {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+  }
+
+  .selection-check-indicator {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: var(--color-primary);
+    color: #ffffff;
+    font-size: 0.75rem;
+    font-weight: bold;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .gender-radio-input:checked + .gender-card-inner .selection-check-indicator {
+    display: flex;
+  }
+
+  /* Academic Level Cards */
+  .level-pills-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  @media (min-width: 520px) {
+    .level-pills-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  .level-pill-card {
+    position: relative;
+    cursor: pointer;
+  }
+
+  .level-radio-input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .level-pill-inner {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 12px 10px;
+    text-align: center;
+    background-color: var(--color-surface);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-height: 58px;
+    justify-content: center;
+    transition: all 0.15s ease;
+  }
+
+  .level-pill-card:hover .level-pill-inner {
+    border-color: var(--color-border-hover);
+  }
+
+  .level-radio-input:checked + .level-pill-inner {
+    border-color: var(--color-primary);
+    background-color: rgba(79, 70, 229, 0.05);
+    box-shadow: 0 0 0 1px var(--color-primary);
+  }
+
+  .level-number {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--color-text);
+  }
+
+  .level-desc {
+    font-size: 0.6875rem;
+    color: var(--color-text-muted);
+  }
+
+  /* Selects */
+  .select-wrapper {
+    position: relative;
+  }
+
+  .form-select {
+    width: 100%;
+    height: 44px;
+    padding: 0 36px 0 12px;
+    font-family: inherit;
+    font-size: 0.9375rem;
+    color: var(--color-text);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+  }
+
+  .form-select:focus {
+    outline: none;
+    border-color: var(--color-border-focus);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  }
+
+  .form-textarea {
+    width: 100%;
+    padding: 10px 12px;
+    font-family: inherit;
+    font-size: 0.9375rem;
+    color: var(--color-text);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    resize: vertical;
+    min-height: 80px;
+  }
+
+  .form-textarea:focus {
+    outline: none;
+    border-color: var(--color-border-focus);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  }
+
+  .char-counter {
+    font-size: 0.75rem;
+    color: var(--color-text-subtle);
+    font-family: var(--font-mono);
+  }
+
+  .bio-suggestions-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .suggestion-label {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+  }
+
+  .suggestion-chip {
+    background-color: var(--color-surface-subtle);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 3px 8px;
+    font-size: 0.75rem;
+    font-family: inherit;
+    color: var(--color-text);
+    cursor: pointer;
+    min-height: 28px;
+    transition: all 0.15s ease;
+  }
+
+  .suggestion-chip:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+
+  /* Avatar setup column */
+  .avatar-setup-container {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 20px;
+    align-items: center;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    background-color: var(--color-surface-subtle);
+  }
+
+  @media (max-width: 520px) {
+    .avatar-setup-container {
+      grid-template-columns: 1fr;
+      text-align: center;
+    }
+  }
+
+  .avatar-preview-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .current-avatar-preview {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid var(--color-surface);
+    box-shadow: 0 0 0 2px var(--color-primary);
+  }
+
+  .current-avatar-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .btn-upload-avatar {
+    font-size: 0.75rem;
+    height: 32px;
+    padding: 0 10px;
+    cursor: pointer;
+  }
+
+  .presets-label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: 8px;
+  }
+
+  .preset-avatars-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+  }
+
+  @media (max-width: 480px) {
+    .preset-avatars-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  .preset-avatar-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid var(--color-border);
+    padding: 0;
+    cursor: pointer;
+    overflow: hidden;
+    background: none;
+    transition: all 0.15s ease;
+  }
+
+  .preset-avatar-btn:hover {
+    border-color: var(--color-border-hover);
+    transform: scale(1.05);
+  }
+
+  .preset-avatar-btn.active {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+  }
+
+  .preset-avatar-btn img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Actions Footer */
+  .step-actions-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .btn-step-nav {
+    min-height: 44px;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .step-validation-msg {
+    color: var(--color-error);
+    font-size: 0.8125rem;
+    margin-top: 8px;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+  }
+</style>
+
+<script>
+  (function() {
+    // KTU 2026 Academic Catalog (injected from Flask route)
+    const academicCatalog = {{ catalog|tojson|safe }};
+
+    // Navigation elements
+    const stepPane1 = document.getElementById('stepPane1');
+    const stepPane2 = document.getElementById('stepPane2');
+    const stepPane3 = document.getElementById('stepPane3');
+
+    const stepIndicator1 = document.getElementById('stepIndicator1');
+    const stepIndicator2 = document.getElementById('stepIndicator2');
+    const stepIndicator3 = document.getElementById('stepIndicator3');
+    const progressFill = document.getElementById('stepperProgressFill');
+
+    const btnGoToStep2 = document.getElementById('btnGoToStep2');
+    const btnBackToStep1 = document.getElementById('btnBackToStep1');
+    const btnGoToStep3 = document.getElementById('btnGoToStep3');
+    const btnBackToStep2 = document.getElementById('btnBackToStep2');
+
+    const step1Error = document.getElementById('step1Error');
+    const step2Error = document.getElementById('step2Error');
+
+    const facultySelect = document.getElementById('facultySelect');
+    const courseSelect = document.getElementById('courseSelect');
+
+    const bioInput = document.getElementById('bioInput');
+    const bioCharCounter = document.getElementById('bioCharCounter');
+
+    const avatarPreviewImg = document.getElementById('avatarPreviewImg');
+    const avatarFileInput = document.getElementById('avatarFileInput');
+    const selectedAvatarPreset = document.getElementById('selectedAvatarPreset');
+    const presetBtns = document.querySelectorAll('.preset-avatar-btn');
+
+    // Stepper navigation logic
+    function setStep(stepNum) {
+      stepPane1.classList.remove('active');
+      stepPane2.classList.remove('active');
+      stepPane3.classList.remove('active');
+
+      stepIndicator1.className = 'step-indicator' + (stepNum >= 1 ? (stepNum > 1 ? ' completed' : ' active') : '');
+      stepIndicator2.className = 'step-indicator' + (stepNum >= 2 ? (stepNum > 2 ? ' completed' : ' active') : '');
+      stepIndicator3.className = 'step-indicator' + (stepNum === 3 ? ' active' : '');
+
+      if (stepNum === 1) {
+        stepPane1.classList.add('active');
+        progressFill.style.width = '33.33%';
+      } else if (stepNum === 2) {
+        stepPane2.classList.add('active');
+        progressFill.style.width = '66.66%';
+      } else if (stepNum === 3) {
+        stepPane3.classList.add('active');
+        progressFill.style.width = '100%';
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Step 1 Validation -> Proceed to Step 2
+    if (btnGoToStep2) {
+      btnGoToStep2.addEventListener('click', function() {
+        const checkedGender = document.querySelector('input[name="gender"]:checked');
+        if (!checkedGender) {
+          step1Error.style.display = 'block';
+          return;
+        }
+        step1Error.style.display = 'none';
+        setStep(2);
+      });
+    }
+
+    if (btnBackToStep1) {
+      btnBackToStep1.addEventListener('click', function() {
+        setStep(1);
+      });
+    }
+
+    // Step 2 Validation -> Proceed to Step 3
+    if (btnGoToStep3) {
+      btnGoToStep3.addEventListener('click', function() {
+        const checkedLevel = document.querySelector('input[name="level"]:checked');
+        const fac = facultySelect.value;
+        const crs = courseSelect.value;
+
+        if (!checkedLevel || !fac || !crs) {
+          step2Error.style.display = 'block';
+          return;
+        }
+        step2Error.style.display = 'none';
+        setStep(3);
+      });
+    }
+
+    if (btnBackToStep2) {
+      btnBackToStep2.addEventListener('click', function() {
+        setStep(2);
+      });
+    }
+
+    // Dynamic Faculty -> Courses population (KTU 2026 Programs)
+    function populateCourses(selectedFaculty, preselectedCourse) {
+      courseSelect.innerHTML = '<option value="" disabled selected>Select program of study...</option>';
+      const courses = academicCatalog[selectedFaculty] || [];
+      courses.forEach(function(courseName) {
+        const opt = document.createElement('option');
+        opt.value = courseName;
+        opt.textContent = courseName;
+        if (preselectedCourse && preselectedCourse === courseName) {
+          opt.selected = true;
+        }
+        courseSelect.appendChild(opt);
+      });
+    }
+
+    if (facultySelect) {
+      facultySelect.addEventListener('change', function() {
+        populateCourses(this.value, null);
+      });
+      // Initial populate if preselected
+      if (facultySelect.value) {
+        populateCourses(facultySelect.value, '{{ selected_course|default('')|e }}');
+      }
+    }
+
+    // Avatar Presets selection
+    presetBtns.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        presetBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const url = btn.getAttribute('data-preset');
+        avatarPreviewImg.src = url;
+        selectedAvatarPreset.value = url;
+        if (avatarFileInput) avatarFileInput.value = '';
+      });
+    });
+
+    // Local Avatar File Upload Preview
+    if (avatarFileInput) {
+      avatarFileInput.addEventListener('change', function(e) {
+        const file = e.target.files && e.target.files[0];
+        if (file) {
+          presetBtns.forEach(b => b.classList.remove('active'));
+          selectedAvatarPreset.value = '';
+          const reader = new FileReader();
+          reader.onload = function(evt) {
+            avatarPreviewImg.src = evt.target.result;
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    }
+
+    // Bio character counter
+    if (bioInput && bioCharCounter) {
+      function updateBioCount() {
+        const len = (bioInput.value || '').length;
+        bioCharCounter.textContent = len + ' / 160';
+      }
+      bioInput.addEventListener('input', updateBioCount);
+      updateBioCount();
+    }
+
+    // Global helper for quick fill chips
+    window.fillBio = function(text) {
+      if (bioInput) {
+        bioInput.value = text;
+        if (bioCharCounter) bioCharCounter.textContent = text.length + ' / 160';
+      }
+    };
+  })();
+</script>
+{% endblock %}
