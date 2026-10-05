@@ -64,10 +64,14 @@ def create_app(config_class="production"):
     # 2. Configure Flask-Login settings
     login_manager.login_view = "auth.login"
     login_manager.login_message = "Please log in to access this campus feature."
-    login_manager.login_message_category = "info"
+    login_message_category = "info"
 
     # Register models and login user_loader
     from app import models  # noqa: F401
+
+    # Ensure all SQLite database tables exist on application startup
+    with app.app_context():
+        db.create_all()
 
     # 3. Automated runtime directories creation
     os.makedirs(app.instance_path, exist_ok=True)
@@ -168,5 +172,5 @@ def create_app(config_class="production"):
         socketio.init_app(app, cors_allowed_origins="*")
     except Exception:
         pass
-
+  return app
     return app
