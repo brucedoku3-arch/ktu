@@ -172,4 +172,5 @@ def create_app(config_class="production"):
         socketio.init_app(app, cors_allowed_origins="*")
     except Exception:
         pass
-  return app
+
+    return app
