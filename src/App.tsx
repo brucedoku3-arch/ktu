@@ -78,7 +78,13 @@ import {
   Pin,
   PinOff,
   EyeOff,
-  Award
+  Award,
+  Menu,
+  X,
+  ChevronRight,
+  Compass,
+  Grid,
+  HelpCircle
 } from 'lucide-react';
 import StudentOnboardingFlow from './components/StudentOnboardingFlow';
 import KTULandingPage from './components/KTULandingPage';
@@ -318,6 +324,13 @@ export default function App() {
 
   // Top navigation tabs
   const [activeTab, setActiveTab] = useState<'vlogs' | 'chat' | 'memes' | 'aux' | 'hub' | 'admin' | 'profile' | 'onboarding'>('vlogs');
+
+  // Official KTU Mobile Menu Drawer state (matching ktu.edu.gh)
+  const [isMenuDrawerOpen, setIsMenuDrawerOpen] = useState(false);
+  const [expandedNavCategory, setExpandedNavCategory] = useState<string | null>(null);
+  const [headerSearchQuery, setHeaderSearchQuery] = useState('');
+  const [desktopDropdown, setDesktopDropdown] = useState<'campus' | 'academics' | 'hub' | 'about' | null>(null);
+  const [menuFilterQuery, setMenuFilterQuery] = useState('');
 
   // RBAC Guard: If logged-in user is not an admin, immediately redirect away from admin tab
   useEffect(() => {
@@ -2779,166 +2792,849 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans antialiased selection:bg-indigo-100 selection:text-indigo-900">
       {/* ===================================================================== */}
-      {/* APP HEADER                                                            */}
+      {/* 1. TOP INSTITUTIONAL NAVY BAR (Matching ktu.edu.gh screenshot)        */}
       {/* ===================================================================== */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
-        <div className={`mx-auto px-3 sm:px-6 h-14 flex items-center justify-between transition-all duration-300 ${activeTab === 'vlogs' ? 'max-w-7xl' : 'max-w-4xl'}`}>
-          <div
-            onClick={() => setActiveTab('vlogs')}
-            className="flex items-center gap-2.5 cursor-pointer group"
-            title="Koforidua Technical University · CampusSocial"
+      <div className="bg-[#002147] text-white px-3 sm:px-6 py-2 border-b border-[#0b2b52] z-50">
+        <div className={`mx-auto flex flex-col gap-1.5 transition-all duration-300 ${activeTab === 'vlogs' ? 'max-w-7xl' : 'max-w-4xl'}`}>
+          <div className="flex items-center justify-end gap-4 text-[11px] sm:text-xs font-medium text-slate-200">
+            <button
+              onClick={() => {
+                setActiveTab('onboarding');
+                triggerToast('Opening KTU Student Onboarding & Admissions');
+              }}
+              className="hover:text-amber-400 transition-colors cursor-pointer"
+            >
+              Apply Online
+            </button>
+            <span className="text-slate-500">|</span>
+            <button
+              onClick={() => {
+                setActiveTab('hub');
+                setHubSection('news');
+              }}
+              className="hover:text-amber-400 transition-colors cursor-pointer"
+            >
+              Staff Directory
+            </button>
+            <span className="text-slate-500">|</span>
+            <button
+              onClick={() => {
+                setActiveTab('hub');
+                setHubSection('events');
+              }}
+              className="hover:text-amber-400 transition-colors cursor-pointer"
+            >
+              Alumni
+            </button>
+          </div>
+
+          {/* Search bar with orange accent submit button */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (headerSearchQuery.trim()) {
+                triggerToast(`Searching campus network for "${headerSearchQuery}"...`);
+              }
+            }}
+            className="flex items-stretch w-full h-8 sm:h-9 bg-[#1e3a5f] rounded overflow-hidden border border-white/15"
           >
-            <KTULogo size={36} className="group-hover:scale-105 transition-transform" />
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-black text-sm tracking-tight text-slate-900 group-hover:text-indigo-600 transition-colors">
-                  KTU Social
-                </span>
-                <span className="text-[9px] bg-amber-100 text-amber-900 font-semibold px-1.5 py-0.5 rounded uppercase font-mono">
-                  Koforidua
-                </span>
-                <span className="hidden sm:inline-block text-[10px] bg-indigo-100 text-indigo-800 font-mono px-1.5 py-0.5 rounded font-bold uppercase">
-                  {activeTab}
-                </span>
-              </div>
-              <p className="text-[10px] text-slate-500 font-medium leading-none hidden sm:block">
-                Innovating For Development
-              </p>
+            <input
+              type="text"
+              value={headerSearchQuery}
+              onChange={(e) => setHeaderSearchQuery(e.target.value)}
+              placeholder="Search..."
+              className="flex-1 bg-transparent px-3 text-xs sm:text-sm text-white placeholder-slate-400 outline-none"
+            />
+            <button
+              type="submit"
+              className="w-11 sm:w-12 bg-[#e67e22] hover:bg-[#d35400] text-white flex items-center justify-center transition-colors cursor-pointer"
+              title="Search KTU Campus"
+            >
+              <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+            </button>
+          </form>
+        </div>
+      </div>
+
+      {/* ===================================================================== */}
+      {/* 2. MAIN WHITE INSTITUTIONAL HEADER WITH HAMBURGER BUTTON             */}
+      {/* ===================================================================== */}
+      <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-xs">
+        <div className={`mx-auto px-3 sm:px-6 h-15 flex items-center justify-between transition-all duration-300 ${activeTab === 'vlogs' ? 'max-w-7xl' : 'max-w-4xl'}`}>
+          
+          {/* Official KTU Crest Logo & 3-Line Institutional Title */}
+          <div
+            onClick={() => {
+              setActiveTab('vlogs');
+              setIsMenuDrawerOpen(false);
+            }}
+            className="flex items-center gap-3 cursor-pointer group select-none"
+            title="Koforidua Technical University"
+          >
+            <div className="w-10 h-10 rounded-full border border-slate-200 p-0.5 bg-white shadow-2xs group-hover:scale-105 transition-transform flex items-center justify-center overflow-hidden">
+              <img
+                src="https://lookaside.fbsbx.com/lookaside/crawler/media/?media_id=100069632100022"
+                alt="KTU Crest"
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = 'https://api.dicebear.com/7.x/identicon/svg?seed=KTU';
+                }}
+              />
+            </div>
+            <div className="flex flex-col leading-[1.1]">
+              <span className="font-extrabold text-[12px] sm:text-[13px] tracking-wider text-[#002147] uppercase">
+                KOFORIDUA
+              </span>
+              <span className="font-extrabold text-[12px] sm:text-[13px] tracking-wider text-[#002147] uppercase">
+                TECHNICAL
+              </span>
+              <span className="font-extrabold text-[12px] sm:text-[13px] tracking-wider text-[#002147] uppercase">
+                UNIVERSITY
+              </span>
             </div>
           </div>
 
-          {/* Quick Header Actions */}
-          <div className="flex items-center gap-1 sm:gap-2">
-            {/* Tab Action Buttons (Post Story / New Chat / Post Meme) */}
+          {/* =================================================================== */}
+          {/* DESKTOP HORIZONTAL NAVIGATION MENU BAR (Instant campus navigation)  */}
+          {/* =================================================================== */}
+          <nav className="hidden lg:flex items-center gap-1 xl:gap-2">
+            {/* Feed / Home */}
+            <button
+              onClick={() => {
+                setActiveTab('vlogs');
+                setIsMenuDrawerOpen(false);
+                setDesktopDropdown(null);
+              }}
+              className={`px-3 py-1.5 text-xs xl:text-sm font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeTab === 'vlogs'
+                  ? 'bg-[#002147] text-white shadow-2xs'
+                  : 'text-slate-700 hover:text-[#002147] hover:bg-slate-100'
+              }`}
+            >
+              <Video className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-rose-500" />
+              <span>Feed</span>
+            </button>
+
+            {/* Campus Life Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setDesktopDropdown(desktopDropdown === 'campus' ? null : 'campus')}
+                className={`px-3 py-1.5 text-xs xl:text-sm font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                  ['memes', 'aux', 'chat'].includes(activeTab) || desktopDropdown === 'campus'
+                    ? 'bg-indigo-50 text-indigo-700 font-extrabold'
+                    : 'text-slate-700 hover:text-[#002147] hover:bg-slate-100'
+                }`}
+              >
+                <Flame className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-amber-500" />
+                <span>Campus Life</span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${desktopDropdown === 'campus' ? 'rotate-180 text-indigo-600' : ''}`} />
+              </button>
+
+              {desktopDropdown === 'campus' && (
+                <div
+                  className="absolute left-0 top-full mt-2 w-64 bg-white rounded-xl shadow-2xl border border-slate-200 py-2 z-50 animate-in fade-in slide-in-from-top-1"
+                  onMouseLeave={() => setDesktopDropdown(null)}
+                >
+                  <button
+                    onClick={() => {
+                      setActiveTab('memes');
+                      setDesktopDropdown(null);
+                    }}
+                    className="w-full px-4 py-2.5 text-left text-xs xl:text-sm font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-3 transition-colors cursor-pointer"
+                  >
+                    <Flame className="w-4 h-4 text-amber-500 shrink-0" />
+                    <div>
+                      <div className="font-bold text-slate-900">Meme Vault & Hall Wars</div>
+                      <div className="text-[11px] text-slate-500 font-normal">Campus satire, banter & viral memes</div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveTab('aux');
+                      setDesktopDropdown(null);
+                    }}
+                    className="w-full px-4 py-2.5 text-left text-xs xl:text-sm font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-3 transition-colors cursor-pointer"
+                  >
+                    <Music className="w-4 h-4 text-indigo-500 shrink-0" />
+                    <div>
+                      <div className="font-bold text-slate-900">87.7 FM Aux Cord Battles</div>
+                      <div className="text-[11px] text-slate-500 font-normal">Daily track battles & campus radio</div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveTab('chat');
+                      setDesktopDropdown(null);
+                    }}
+                    className="w-full px-4 py-2.5 text-left text-xs xl:text-sm font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-3 transition-colors cursor-pointer"
+                  >
+                    <MessageSquare className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <div>
+                      <div className="font-bold text-slate-900">Peer Direct Messages</div>
+                      <div className="text-[11px] text-slate-500 font-normal">Direct encrypted student chat</div>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Academics Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setDesktopDropdown(desktopDropdown === 'academics' ? null : 'academics')}
+                className={`px-3 py-1.5 text-xs xl:text-sm font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                  (activeTab === 'hub' && ['reviews', 'roulette', 'swap'].includes(hubSection)) || desktopDropdown === 'academics'
+                    ? 'bg-indigo-50 text-indigo-700 font-extrabold'
+                    : 'text-slate-700 hover:text-[#002147] hover:bg-slate-100'
+                }`}
+              >
+                <GraduationCap className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-indigo-500" />
+                <span>Academics</span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${desktopDropdown === 'academics' ? 'rotate-180 text-indigo-600' : ''}`} />
+              </button>
+
+              {desktopDropdown === 'academics' && (
+                <div
+                  className="absolute left-0 top-full mt-2 w-68 bg-white rounded-xl shadow-2xl border border-slate-200 py-2 z-50 animate-in fade-in slide-in-from-top-1"
+                  onMouseLeave={() => setDesktopDropdown(null)}
+                >
+                  <button
+                    onClick={() => {
+                      setActiveTab('hub');
+                      setHubSection('reviews');
+                      setDesktopDropdown(null);
+                    }}
+                    className="w-full px-4 py-2.5 text-left text-xs xl:text-sm font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-3 transition-colors cursor-pointer"
+                  >
+                    <GraduationCap className="w-4 h-4 text-indigo-500 shrink-0" />
+                    <div>
+                      <div className="font-bold text-slate-900">Course & Lecturer Reviews</div>
+                      <div className="text-[11px] text-slate-500 font-normal">Peer grading, syllabus tips & notes</div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveTab('hub');
+                      setHubSection('roulette');
+                      setDesktopDropdown(null);
+                    }}
+                    className="w-full px-4 py-2.5 text-left text-xs xl:text-sm font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-3 transition-colors cursor-pointer"
+                  >
+                    <Dice5 className="w-4 h-4 text-violet-500 shrink-0" />
+                    <div>
+                      <div className="font-bold text-slate-900">Study Buddy Roulette</div>
+                      <div className="text-[11px] text-slate-500 font-normal">Connect with exam & library partners</div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveTab('hub');
+                      setHubSection('swap');
+                      setDesktopDropdown(null);
+                    }}
+                    className="w-full px-4 py-2.5 text-left text-xs xl:text-sm font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-3 transition-colors cursor-pointer"
+                  >
+                    <Scissors className="w-4 h-4 text-amber-500 shrink-0" />
+                    <div>
+                      <div className="font-bold text-slate-900">Favor & Skill Barter</div>
+                      <div className="text-[11px] text-slate-500 font-normal">Swap skills, haircuts & tutoring</div>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Student Hub Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setDesktopDropdown(desktopDropdown === 'hub' ? null : 'hub')}
+                className={`px-3 py-1.5 text-xs xl:text-sm font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                  (activeTab === 'hub' && ['news', 'polls', 'events'].includes(hubSection)) || desktopDropdown === 'hub'
+                    ? 'bg-indigo-50 text-indigo-700 font-extrabold'
+                    : 'text-slate-700 hover:text-[#002147] hover:bg-slate-100'
+                }`}
+              >
+                <BookOpen className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-emerald-500" />
+                <span>Student Hub</span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${desktopDropdown === 'hub' ? 'rotate-180 text-indigo-600' : ''}`} />
+              </button>
+
+              {desktopDropdown === 'hub' && (
+                <div
+                  className="absolute left-0 top-full mt-2 w-64 bg-white rounded-xl shadow-2xl border border-slate-200 py-2 z-50 animate-in fade-in slide-in-from-top-1"
+                  onMouseLeave={() => setDesktopDropdown(null)}
+                >
+                  <button
+                    onClick={() => {
+                      setActiveTab('hub');
+                      setHubSection('news');
+                      setDesktopDropdown(null);
+                    }}
+                    className="w-full px-4 py-2.5 text-left text-xs xl:text-sm font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-3 transition-colors cursor-pointer"
+                  >
+                    <FileText className="w-4 h-4 text-indigo-500 shrink-0" />
+                    <div>
+                      <div className="font-bold text-slate-900">Official Campus Notices</div>
+                      <div className="text-[11px] text-slate-500 font-normal">Dean & Registrar official bulletins</div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveTab('hub');
+                      setHubSection('polls');
+                      setDesktopDropdown(null);
+                    }}
+                    className="w-full px-4 py-2.5 text-left text-xs xl:text-sm font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-3 transition-colors cursor-pointer"
+                  >
+                    <BarChart2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <div>
+                      <div className="font-bold text-slate-900">Live Student Polls</div>
+                      <div className="text-[11px] text-slate-500 font-normal">SRC voting & student surveys</div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveTab('hub');
+                      setHubSection('events');
+                      setDesktopDropdown(null);
+                    }}
+                    className="w-full px-4 py-2.5 text-left text-xs xl:text-sm font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-3 transition-colors cursor-pointer"
+                  >
+                    <Calendar className="w-4 h-4 text-amber-500 shrink-0" />
+                    <div>
+                      <div className="font-bold text-slate-900">Events & SRC Calendar</div>
+                      <div className="text-[11px] text-slate-500 font-normal">Campus week, seminars & sports</div>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Admissions */}
+            <button
+              onClick={() => {
+                setActiveTab('onboarding');
+                setIsMenuDrawerOpen(false);
+                setDesktopDropdown(null);
+              }}
+              className={`px-3 py-1.5 text-xs xl:text-sm font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeTab === 'onboarding'
+                  ? 'bg-[#002147] text-white shadow-2xs'
+                  : 'text-slate-700 hover:text-[#002147] hover:bg-slate-100'
+              }`}
+            >
+              <UserPlus className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-emerald-500" />
+              <span>Admissions</span>
+            </button>
+
+            {/* Admin Center (if admin) */}
+            {currentUser.is_admin && (
+              <button
+                onClick={() => {
+                  setActiveTab('admin');
+                  setIsMenuDrawerOpen(false);
+                  setDesktopDropdown(null);
+                }}
+                className={`px-3 py-1.5 text-xs xl:text-sm font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                  activeTab === 'admin'
+                    ? 'bg-rose-600 text-white shadow-2xs'
+                    : 'text-rose-700 hover:bg-rose-50'
+                }`}
+              >
+                <Shield className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-rose-500" />
+                <span>Admin</span>
+                {pendingReportsCount > 0 && (
+                  <span className="w-4 h-4 bg-rose-600 text-white rounded-full text-[9px] font-mono flex items-center justify-center font-bold">
+                    {pendingReportsCount}
+                  </span>
+                )}
+              </button>
+            )}
+          </nav>
+
+          {/* Quick Header Actions & Prominent MENU Button */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            
+            {/* Quick action buttons for active tab */}
             {activeTab === 'chat' && (
               <button
                 onClick={() => setShowNewChatModal(true)}
-                className="group inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 text-xs font-bold text-white bg-gradient-to-r from-indigo-600 via-indigo-700 to-violet-700 hover:from-indigo-500 hover:to-violet-600 rounded-full transition-all cursor-pointer shadow-xs active:scale-95 border border-indigo-400/30"
+                className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-md transition-colors cursor-pointer"
                 title="Start New Peer Chat"
               >
-                <SquarePen className="w-3.5 h-3.5 transition-transform group-hover:scale-110" />
-                <span className="hidden sm:inline">New Chat</span>
+                <SquarePen className="w-3.5 h-3.5" />
+                <span>New Chat</span>
               </button>
             )}
 
             {activeTab === 'vlogs' && (
               <button
                 onClick={() => setShowUploadModal(true)}
-                className="group inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1 sm:py-1.5 text-xs font-bold text-white bg-gradient-to-r from-[#FE2C55] via-[#FF0050] to-[#EE1D52] hover:brightness-110 rounded-full transition-all cursor-pointer shadow-xs active:scale-95 border border-rose-400/40"
+                className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-md transition-colors cursor-pointer"
                 title="Upload Campus Story"
               >
-                <Camera className="w-3.5 h-3.5 transition-transform group-hover:scale-110" />
-                <span className="hidden sm:inline">Post Story</span>
+                <Camera className="w-3.5 h-3.5" />
+                <span>Post Story</span>
               </button>
             )}
 
             {activeTab === 'memes' && (
               <button
                 onClick={() => setShowMemeModal(true)}
-                className="group inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1 sm:py-1.5 text-xs font-bold text-white bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 hover:brightness-110 rounded-full transition-all cursor-pointer shadow-xs active:scale-95 border border-amber-300/40"
+                className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-md transition-colors cursor-pointer"
                 title="Publish Campus Meme"
               >
-                <Flame className="w-3.5 h-3.5 fill-amber-200 text-amber-200 transition-transform group-hover:scale-110" />
-                <span className="hidden sm:inline">Post Meme</span>
+                <Flame className="w-3.5 h-3.5" />
+                <span>Post Meme</span>
               </button>
             )}
 
-            {/* Verified Student Profile Pill */}
+            {/* Verified Student Pill */}
             <button
-              onClick={() => setActiveTab('profile')}
-              className={`inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer border ${
-                activeTab === 'profile'
-                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
-                  : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-100 shadow-2xs'
-              }`}
-              title={`View & Edit Verified Student Profile (@${currentUser.username})`}
+              onClick={() => {
+                setActiveTab('profile');
+                setIsMenuDrawerOpen(false);
+              }}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-[#002147] transition-colors cursor-pointer"
+              title={`Logged in as @${currentUser.username}`}
             >
               <img
                 src={currentUser.avatar}
                 alt={currentUser.username}
-                className="w-4 h-4 rounded-full object-cover border border-indigo-300 shrink-0"
+                className="w-4.5 h-4.5 rounded-full object-cover shrink-0"
                 onError={(e) => {
                   (e.currentTarget as HTMLImageElement).src =
                     'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80';
                 }}
               />
-              <span className="truncate max-w-[65px] sm:max-w-[120px]">@{currentUser.username}</span>
-              <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1 rounded-sm shrink-0">✓</span>
+              <span className="truncate max-w-[60px] sm:max-w-[95px]">@{currentUser.username}</span>
             </button>
 
-            {/* Admin Command Center Quick Pill */}
-            {currentUser.is_admin && (
-              <button
-                onClick={() => setActiveTab('admin')}
-                className={`inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer border ${
-                  activeTab === 'admin'
-                    ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
-                    : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
-                }`}
-                title="Dean & Campus Safety Moderation Command Center"
-              >
-                <Shield className="w-3.5 h-3.5 shrink-0" />
-                <span className="hidden sm:inline">Admin</span>
-                {pendingReportsCount > 0 && (
-                  <span className="w-4 h-4 rounded-full bg-rose-600 text-white text-[10px] font-mono flex items-center justify-center font-bold shrink-0">
-                    {pendingReportsCount}
-                  </span>
-                )}
-              </button>
-            )}
-
-            {/* Return to Landing Page / Logout Button */}
+            {/* Prominent KTU MENU Button with Label */}
             <button
-              onClick={() => {
-                setIsLoggedIn(false);
-                try {
-                  localStorage.removeItem('ktu_is_logged_in');
-                } catch (e) {}
-                triggerToast('Signed out. Returned to KTU Landing Page.');
-              }}
-              className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer border bg-slate-100 text-slate-700 border-slate-200 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200"
-              title="Sign out and return to KTU Social"
+              onClick={() => setIsMenuDrawerOpen(!isMenuDrawerOpen)}
+              className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg border font-extrabold text-xs sm:text-sm tracking-wide transition-all cursor-pointer shadow-2xs ${
+                isMenuDrawerOpen
+                  ? 'bg-[#002147] border-[#002147] text-white ring-2 ring-[#002147]/20'
+                  : 'bg-white border-slate-300 hover:border-[#002147] hover:bg-slate-50 text-[#002147]'
+              }`}
+              aria-label="Toggle navigation menu"
+              aria-expanded={isMenuDrawerOpen}
+              title="Toggle KTU Campus Navigation Menu"
             >
-              <LogOut className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden sm:inline">Sign Out</span>
+              <div className="w-4.5 h-3.5 flex flex-col justify-between items-center shrink-0">
+                <span className={`w-4.5 h-[2px] rounded-full transition-all duration-200 ${isMenuDrawerOpen ? 'bg-white translate-y-[5.5px] rotate-45' : 'bg-[#002147]'}`}></span>
+                <span className={`w-4.5 h-[2px] rounded-full transition-all duration-200 ${isMenuDrawerOpen ? 'opacity-0' : 'bg-[#002147]'}`}></span>
+                <span className={`w-4.5 h-[2px] rounded-full transition-all duration-200 ${isMenuDrawerOpen ? 'bg-white -translate-y-[5.5px] -rotate-45' : 'bg-[#002147]'}`}></span>
+              </div>
+              <span className="uppercase text-[11px] sm:text-xs font-black">
+                {isMenuDrawerOpen ? 'Close' : 'Menu'}
+              </span>
             </button>
+
           </div>
         </div>
 
-        {/* Desktop Navigation Row */}
-        <div className={`hidden md:flex mx-auto px-6 border-t border-slate-100 py-1 gap-1 transition-all duration-300 ${activeTab === 'vlogs' ? 'max-w-7xl' : 'max-w-4xl'}`}>
-          {[
-            { id: 'vlogs', label: 'Campus Vlogs', icon: Video },
-            { id: 'chat', label: 'Peer Messages', icon: MessageSquare },
-            { id: 'memes', label: 'Brainrot Memes', icon: Flame },
-            { id: 'aux', label: '87.7 FM Aux', icon: Music },
-            { id: 'hub', label: 'KTU Hub', icon: BookOpen },
-            { id: 'profile', label: 'Student Profile', icon: GraduationCap },
-            ...(currentUser.is_admin ? [{ id: 'admin', label: 'Safety & Admin', icon: Shield, badge: pendingReportsCount }] : []),
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer ${
-                  isActive ? 'bg-indigo-600 text-white font-bold' : 'text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                <span>{tab.label}</span>
-                {tab.badge !== undefined && tab.badge > 0 && (
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                    isActive ? 'bg-white text-indigo-700' : 'bg-rose-100 text-rose-700'
-                  }`}>
-                    {tab.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+        {/* =================================================================== */}
+        {/* 3. EXPANDABLE NAVIGATION DRAWER MENU                                */}
+        {/* =================================================================== */}
+        {isMenuDrawerOpen && (
+          <>
+            {/* Backdrop for outside click */}
+            <div
+              className="fixed inset-0 top-[116px] sm:top-[122px] bg-slate-900/40 backdrop-blur-xs z-30 transition-opacity animate-in fade-in"
+              onClick={() => setIsMenuDrawerOpen(false)}
+            />
+
+            <nav className="relative z-40 bg-white border-t border-slate-200 shadow-2xl border-b-4 border-[#002147] animate-in slide-in-from-top-2 duration-200 max-h-[85vh] overflow-y-auto">
+              <div className={`mx-auto ${activeTab === 'vlogs' ? 'max-w-7xl' : 'max-w-4xl'}`}>
+                
+                {/* Institutional Student Identity Card in Menu */}
+                <div className="p-4 sm:p-5 bg-gradient-to-r from-slate-50 via-indigo-50/30 to-slate-50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={currentUser.avatar}
+                      alt={currentUser.name}
+                      className="w-12 h-12 rounded-xl object-cover border-2 border-white shadow-xs shrink-0"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src =
+                          'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80';
+                      }}
+                    />
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-extrabold text-sm text-slate-900">{currentUser.name}</span>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#002147] text-white font-mono">
+                          {currentUser.student_id}
+                        </span>
+                        {currentUser.is_admin ? (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                            👑 Admin
+                          </span>
+                        ) : (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                            ✓ Verified Student
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {currentUser.faculty} · @{currentUser.username}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setActiveTab('profile');
+                        setIsMenuDrawerOpen(false);
+                      }}
+                      className="px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-[#002147] transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                    >
+                      <GraduationCap className="w-3.5 h-3.5" />
+                      <span>My Profile</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowReportModal(true);
+                        setIsMenuDrawerOpen(false);
+                      }}
+                      className="px-3 py-1.5 text-xs font-bold rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 transition-colors cursor-pointer flex items-center gap-1.5"
+                    >
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      <span>Safety Report</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Quick Menu Item Filter Bar */}
+                <div className="px-4 sm:px-6 py-2.5 bg-white border-b border-slate-100 flex items-center gap-2">
+                  <Search className="w-4 h-4 text-slate-400 shrink-0" />
+                  <input
+                    type="text"
+                    value={menuFilterQuery}
+                    onChange={(e) => setMenuFilterQuery(e.target.value)}
+                    placeholder="Filter menu options (e.g., aux, courses, reviews, chat, library)..."
+                    className="w-full text-xs sm:text-sm bg-transparent outline-none text-slate-800 placeholder-slate-400"
+                  />
+                  {menuFilterQuery && (
+                    <button
+                      onClick={() => setMenuFilterQuery('')}
+                      className="text-xs text-slate-400 hover:text-slate-600 px-1.5 py-0.5 rounded cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                {/* Menu Items Accordion / List */}
+                <div className="divide-y divide-slate-100">
+                  
+                  {/* 1. Home / Feed */}
+                  {(!menuFilterQuery || 'home feed stories vlogs'.includes(menuFilterQuery.toLowerCase())) && (
+                    <button
+                      onClick={() => {
+                        setActiveTab('vlogs');
+                        setIsMenuDrawerOpen(false);
+                      }}
+                      className={`w-full text-left px-5 sm:px-8 py-3.5 text-[15px] font-bold flex items-center justify-between transition-colors cursor-pointer ${
+                        activeTab === 'vlogs' ? 'text-indigo-600 bg-indigo-50/50' : 'text-slate-900 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Video className="w-4 h-4 text-rose-500" />
+                        <span>Home & Campus Feed</span>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-400" />
+                    </button>
+                  )}
+
+                  {/* 2. Campus Life (Expandable Accordion) */}
+                  {(!menuFilterQuery || 'campus life memes aux radio audio music chat messages'.includes(menuFilterQuery.toLowerCase())) && (
+                    <div>
+                      <button
+                        onClick={() => setExpandedNavCategory(expandedNavCategory === 'campus_life' ? null : 'campus_life')}
+                        className="w-full text-left px-5 sm:px-8 py-3.5 text-[15px] font-bold text-slate-900 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Flame className="w-4 h-4 text-amber-500" />
+                          <span>Campus Life & Media</span>
+                        </div>
+                        <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${expandedNavCategory === 'campus_life' || menuFilterQuery ? 'rotate-180 text-indigo-600' : ''}`} />
+                      </button>
+                      {(expandedNavCategory === 'campus_life' || menuFilterQuery) && (
+                        <div className="bg-slate-50/70 border-t border-slate-100 py-1 pl-8 sm:pl-12 pr-6 text-sm flex flex-col gap-1">
+                          <button
+                            onClick={() => {
+                              setActiveTab('vlogs');
+                              setIsMenuDrawerOpen(false);
+                            }}
+                            className="text-left py-2 text-slate-700 hover:text-indigo-600 font-medium flex items-center justify-between cursor-pointer"
+                          >
+                            <span className="flex items-center gap-2">
+                              <Film className="w-3.5 h-3.5 text-rose-500" />
+                              30-Second Campus Micro-Vlogs
+                            </span>
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-50 text-rose-700">Hot</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setActiveTab('aux');
+                              setIsMenuDrawerOpen(false);
+                            }}
+                            className="text-left py-2 text-slate-700 hover:text-indigo-600 font-medium flex items-center justify-between cursor-pointer"
+                          >
+                            <span className="flex items-center gap-2">
+                              <Music className="w-3.5 h-3.5 text-indigo-500" />
+                              Daily Aux Cord Battles (87.7 FM)
+                            </span>
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700">Live</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setActiveTab('memes');
+                              setIsMenuDrawerOpen(false);
+                            }}
+                            className="text-left py-2 text-slate-700 hover:text-indigo-600 font-medium flex items-center justify-between cursor-pointer"
+                          >
+                            <span className="flex items-center gap-2">
+                              <Flame className="w-3.5 h-3.5 text-amber-500" />
+                              Brainrot Meme Vault & Hall Wars
+                            </span>
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700">Viral</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setActiveTab('chat');
+                              setIsMenuDrawerOpen(false);
+                            }}
+                            className="text-left py-2 text-slate-700 hover:text-indigo-600 font-medium flex items-center justify-between cursor-pointer"
+                          >
+                            <span className="flex items-center gap-2">
+                              <MessageSquare className="w-3.5 h-3.5 text-emerald-500" />
+                              Peer Direct Messages
+                            </span>
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">Direct</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 3. Academics (Expandable Accordion) */}
+                  {(!menuFilterQuery || 'academics courses reviews lecturers study roulette library swap favor'.includes(menuFilterQuery.toLowerCase())) && (
+                    <div>
+                      <button
+                        onClick={() => setExpandedNavCategory(expandedNavCategory === 'academics' ? null : 'academics')}
+                        className="w-full text-left px-5 sm:px-8 py-3.5 text-[15px] font-bold text-slate-900 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3">
+                          <GraduationCap className="w-4 h-4 text-indigo-500" />
+                          <span>Academics & Study Tools</span>
+                        </div>
+                        <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${expandedNavCategory === 'academics' || menuFilterQuery ? 'rotate-180 text-indigo-600' : ''}`} />
+                      </button>
+                      {(expandedNavCategory === 'academics' || menuFilterQuery) && (
+                        <div className="bg-slate-50/70 border-t border-slate-100 py-1 pl-8 sm:pl-12 pr-6 text-sm flex flex-col gap-1">
+                          <button
+                            onClick={() => {
+                              setActiveTab('hub');
+                              setHubSection('reviews');
+                              setIsMenuDrawerOpen(false);
+                            }}
+                            className="text-left py-2 text-slate-700 hover:text-indigo-600 font-medium flex items-center gap-2 cursor-pointer"
+                          >
+                            <GraduationCap className="w-3.5 h-3.5 text-indigo-500" />
+                            Course & Lecturer Peer Reviews
+                          </button>
+                          <button
+                            onClick={() => {
+                              setActiveTab('hub');
+                              setHubSection('roulette');
+                              setIsMenuDrawerOpen(false);
+                            }}
+                            className="text-left py-2 text-slate-700 hover:text-indigo-600 font-medium flex items-center gap-2 cursor-pointer"
+                          >
+                            <Dice5 className="w-3.5 h-3.5 text-violet-500" />
+                            Library Study Buddy Roulette
+                          </button>
+                          <button
+                            onClick={() => {
+                              setActiveTab('hub');
+                              setHubSection('swap');
+                              setIsMenuDrawerOpen(false);
+                            }}
+                            className="text-left py-2 text-slate-700 hover:text-indigo-600 font-medium flex items-center gap-2 cursor-pointer"
+                          >
+                            <Scissors className="w-3.5 h-3.5 text-amber-500" />
+                            Campus Favor & Skill Barter
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 4. Student Hub (Bulletins, Polls & Events) */}
+                  {(!menuFilterQuery || 'hub news bulletins events calendar polls voting'.includes(menuFilterQuery.toLowerCase())) && (
+                    <div>
+                      <button
+                        onClick={() => setExpandedNavCategory(expandedNavCategory === 'hub' ? null : 'hub')}
+                        className="w-full text-left px-5 sm:px-8 py-3.5 text-[15px] font-bold text-slate-900 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3">
+                          <BookOpen className="w-4 h-4 text-emerald-500" />
+                          <span>Student Hub & Bulletins</span>
+                        </div>
+                        <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${expandedNavCategory === 'hub' || menuFilterQuery ? 'rotate-180 text-indigo-600' : ''}`} />
+                      </button>
+                      {(expandedNavCategory === 'hub' || menuFilterQuery) && (
+                        <div className="bg-slate-50/70 border-t border-slate-100 py-1 pl-8 sm:pl-12 pr-6 text-sm flex flex-col gap-1">
+                          <button
+                            onClick={() => {
+                              setActiveTab('hub');
+                              setHubSection('news');
+                              setIsMenuDrawerOpen(false);
+                            }}
+                            className="text-left py-2 text-slate-700 hover:text-indigo-600 font-medium flex items-center gap-2 cursor-pointer"
+                          >
+                            <FileText className="w-3.5 h-3.5 text-indigo-500" />
+                            Official Campus Notices & Bulletins
+                          </button>
+                          <button
+                            onClick={() => {
+                              setActiveTab('hub');
+                              setHubSection('polls');
+                              setIsMenuDrawerOpen(false);
+                            }}
+                            className="text-left py-2 text-slate-700 hover:text-indigo-600 font-medium flex items-center gap-2 cursor-pointer"
+                          >
+                            <BarChart2 className="w-3.5 h-3.5 text-emerald-500" />
+                            Live Student Polls & Surveys
+                          </button>
+                          <button
+                            onClick={() => {
+                              setActiveTab('hub');
+                              setHubSection('events');
+                              setIsMenuDrawerOpen(false);
+                            }}
+                            className="text-left py-2 text-slate-700 hover:text-indigo-600 font-medium flex items-center gap-2 cursor-pointer"
+                          >
+                            <Calendar className="w-3.5 h-3.5 text-amber-500" />
+                            Events Calendar & SRC Schedule
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 5. Admissions & Identity */}
+                  {(!menuFilterQuery || 'admissions apply onboarding register profile verification'.includes(menuFilterQuery.toLowerCase())) && (
+                    <div>
+                      <button
+                        onClick={() => setExpandedNavCategory(expandedNavCategory === 'admissions' ? null : 'admissions')}
+                        className="w-full text-left px-5 sm:px-8 py-3.5 text-[15px] font-bold text-slate-900 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3">
+                          <UserPlus className="w-4 h-4 text-emerald-500" />
+                          <span>Admissions & Verification</span>
+                        </div>
+                        <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${expandedNavCategory === 'admissions' || menuFilterQuery ? 'rotate-180 text-indigo-600' : ''}`} />
+                      </button>
+                      {(expandedNavCategory === 'admissions' || menuFilterQuery) && (
+                        <div className="bg-slate-50/70 border-t border-slate-100 py-1 pl-8 sm:pl-12 pr-6 text-sm flex flex-col gap-1">
+                          <button
+                            onClick={() => {
+                              setActiveTab('onboarding');
+                              setIsMenuDrawerOpen(false);
+                            }}
+                            className="text-left py-2 text-slate-700 hover:text-indigo-600 font-medium flex items-center gap-2 cursor-pointer"
+                          >
+                            <UserPlus className="w-3.5 h-3.5 text-emerald-500" />
+                            Student Profile Onboarding Wizard
+                          </button>
+                          <button
+                            onClick={() => {
+                              setActiveTab('profile');
+                              setIsMenuDrawerOpen(false);
+                            }}
+                            className="text-left py-2 text-slate-700 hover:text-indigo-600 font-medium flex items-center gap-2 cursor-pointer"
+                          >
+                            <UserCheck className="w-3.5 h-3.5 text-indigo-500" />
+                            Institutional Verification & ID
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 6. Safety & Dean of Students */}
+                  {(!menuFilterQuery || 'safety admin dean report conduct harassment security emergency'.includes(menuFilterQuery.toLowerCase())) && (
+                    <div>
+                      <button
+                        onClick={() => setExpandedNavCategory(expandedNavCategory === 'safety' ? null : 'safety')}
+                        className="w-full text-left px-5 sm:px-8 py-3.5 text-[15px] font-bold text-slate-900 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3">
+                          <ShieldAlert className="w-4 h-4 text-rose-500" />
+                          <span>Campus Safety & Dean of Students</span>
+                        </div>
+                        <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${expandedNavCategory === 'safety' || menuFilterQuery ? 'rotate-180 text-indigo-600' : ''}`} />
+                      </button>
+                      {(expandedNavCategory === 'safety' || menuFilterQuery) && (
+                        <div className="bg-slate-50/70 border-t border-slate-100 py-1 pl-8 sm:pl-12 pr-6 text-sm flex flex-col gap-1">
+                          <button
+                            onClick={() => {
+                              setShowReportModal(true);
+                              setIsMenuDrawerOpen(false);
+                            }}
+                            className="text-left py-2 text-rose-700 hover:text-rose-800 font-semibold flex items-center gap-2 cursor-pointer"
+                          >
+                            <AlertTriangle className="w-3.5 h-3.5 text-rose-500" />
+                            File Universal Safety & Conduct Report
+                          </button>
+                          {currentUser.is_admin && (
+                            <button
+                              onClick={() => {
+                                setActiveTab('admin');
+                                setIsMenuDrawerOpen(false);
+                              }}
+                              className="text-left py-2 text-rose-800 font-bold flex items-center gap-2 cursor-pointer"
+                            >
+                              <Shield className="w-3.5 h-3.5 text-rose-600" />
+                              Dean of Students Safety Command Center ({pendingReportsCount} pending)
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 7. Sign Out / Exit */}
+                  <div className="px-5 sm:px-8 py-3 bg-slate-50 flex items-center justify-between">
+                    <button
+                      onClick={() => {
+                        setIsLoggedIn(false);
+                        setIsMenuDrawerOpen(false);
+                        try {
+                          localStorage.removeItem('ktu_is_logged_in');
+                        } catch (e) {}
+                        triggerToast('Signed out. Returned to KTU Landing Page.');
+                      }}
+                      className="text-xs font-bold text-rose-600 hover:text-rose-700 flex items-center gap-2 cursor-pointer py-1"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      Sign Out of KTU Social
+                    </button>
+                    <span className="text-[11px] text-slate-400 font-medium">
+                      Koforidua Technical University · 2026 Portal
+                    </span>
+                  </div>
+
+                </div>
+              </div>
+            </nav>
+          </>
+        )}
       </header>
 
       {/* Real-time Campus Emergency & Advisory Broadcast System Banner */}
@@ -5904,37 +6600,42 @@ export default function App() {
 
       {/* ===================================================================== */}
       {/* MOBILE BOTTOM NAVIGATION BAR */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 md:hidden flex items-center justify-around px-0.5 pt-1.5 pb-[max(env(safe-area-inset-bottom,0px),8px)] shadow-lg select-none">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 md:hidden flex items-center justify-around px-1 pt-1.5 pb-[max(env(safe-area-inset-bottom,0px),8px)] shadow-lg select-none">
         {[
           { id: 'vlogs', label: 'Feed', icon: Video },
           { id: 'chat', label: 'Chat', icon: MessageSquare },
-          { id: 'memes', label: 'Memes', icon: Flame },
-          { id: 'aux', label: 'Aux', icon: Music },
+          { id: 'memes', label: 'Explore', icon: Flame },
           { id: 'hub', label: 'Hub', icon: BookOpen },
-          { id: 'profile', label: 'Profile', icon: GraduationCap },
-          ...(currentUser.is_admin ? [{ id: 'admin', label: 'Admin', icon: Shield, badge: pendingReportsCount }] : []),
+          { id: 'menu', label: 'Menu', icon: Menu, isMenuToggle: true },
         ].map((item) => {
           const Icon = item.icon;
-          const isActive = activeTab === item.id;
+          const isActive = item.isMenuToggle ? isMenuDrawerOpen : (!isMenuDrawerOpen && activeTab === item.id);
           return (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id as any)}
+              onClick={() => {
+                if (item.isMenuToggle) {
+                  setIsMenuDrawerOpen(!isMenuDrawerOpen);
+                } else {
+                  setIsMenuDrawerOpen(false);
+                  setActiveTab(item.id as any);
+                }
+              }}
               className={`flex-1 min-h-[48px] py-1 flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all relative ${
-                isActive ? 'text-indigo-600 font-extrabold' : 'text-slate-500 hover:text-slate-800'
+                isActive ? 'text-[#002147] font-black' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
               <div className="relative">
-                <Icon className={`w-4.5 h-4.5 transition-transform ${isActive ? 'scale-110 stroke-[2.5]' : 'stroke-[1.8]'}`} />
-                {item.badge !== undefined && item.badge > 0 && (
+                <Icon className={`w-5 h-5 transition-transform ${isActive ? 'scale-110 stroke-[2.5] text-[#002147]' : 'stroke-[1.8]'}`} />
+                {item.id === 'menu' && currentUser.is_admin && pendingReportsCount > 0 && (
                   <span className="absolute -top-1 -right-2 w-3.5 h-3.5 bg-rose-600 text-white rounded-full text-[8px] font-bold flex items-center justify-center font-mono">
-                    {item.badge}
+                    !
                   </span>
                 )}
               </div>
-              <span className="text-[10px] tracking-tight leading-none max-w-[46px] truncate">{item.label}</span>
+              <span className="text-[11px] tracking-tight leading-none truncate font-bold">{item.label}</span>
               {isActive && (
-                <span className="w-3.5 h-0.5 bg-indigo-600 rounded-full mt-0.5"></span>
+                <span className="w-4 h-0.5 bg-[#002147] rounded-full mt-0.5"></span>
               )}
             </button>
           );

@@ -3,11 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="{{ mobile_viewport_meta|default('width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover') }}">
-  <meta name="theme-color" content="{{ theme_color|default('#4f46e5') }}">
-  <title>{% block title %}CampusSocial{% endblock %}</title>
+  <meta name="theme-color" content="#002147">
+  <title>{% block title %}KTU CampusSocial · Koforidua Technical University{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <style>
+    /* Utility Helpers */
     .d-none, .hidden { display: none !important; }
     .d-block { display: block !important; }
     .d-flex { display: flex !important; }
@@ -20,50 +21,703 @@
     .w-100 { width: 100% !important; }
     .text-center { text-align: center !important; }
     .text-muted { color: var(--color-text-muted, #64748b) !important; }
+
+    /* ==========================================================================
+       Official KTU Institutional Header & Navigation Drawer (from ktu.edu.gh)
+       ========================================================================== */
+    .ktu-top-bar {
+      background-color: #002147;
+      color: #ffffff;
+      padding: 8px 16px 12px 16px;
+      font-size: 0.8125rem;
+    }
+
+    .ktu-top-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .ktu-top-links {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 20px;
+    }
+
+    .ktu-top-link {
+      color: #e2e8f0;
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.8125rem;
+      transition: color 0.15s ease;
+    }
+
+    .ktu-top-link:hover {
+      color: #f39c12;
+    }
+
+    .ktu-search-form {
+      display: flex;
+      align-items: stretch;
+      width: 100%;
+      height: 38px;
+      background: #1e3a5f;
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .ktu-search-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      padding: 0 14px;
+      color: #ffffff;
+      font-size: 0.875rem;
+    }
+
+    .ktu-search-input::placeholder {
+      color: #94a3b8;
+    }
+
+    .ktu-search-btn {
+      background: #e67e22;
+      border: none;
+      width: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+
+    .ktu-search-btn:hover {
+      background: #d35400;
+    }
+
+    /* Main Institutional Header */
+    .ktu-main-header {
+      background-color: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+    }
+
+    .ktu-header-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Brand Logo & Typographic Lockup */
+    .ktu-brand-lockup {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #002147;
+    }
+
+    .ktu-crest-logo {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+      border-radius: 50%;
+      background: #ffffff;
+    }
+
+    .ktu-brand-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.15;
+    }
+
+    .ktu-brand-line1 {
+      font-size: 0.875rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      color: #002147;
+    }
+
+    .ktu-brand-line2 {
+      font-size: 0.875rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      color: #002147;
+    }
+
+    .ktu-brand-line3 {
+      font-size: 0.875rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      color: #002147;
+    }
+
+    /* Desktop Horizontal Navigation Bar */
+    .ktu-desktop-nav {
+      display: none;
+      align-items: center;
+      gap: 6px;
+    }
+
+    @media (min-width: 992px) {
+      .ktu-desktop-nav {
+        display: flex;
+      }
+    }
+
+    .ktu-desktop-nav-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 700;
+      color: #334155;
+      text-decoration: none;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .ktu-desktop-nav-link:hover {
+      background: #f1f5f9;
+      color: #002147;
+    }
+
+    .ktu-desktop-nav-link i {
+      font-size: 1rem;
+    }
+
+    .ktu-dropdown {
+      position: relative;
+    }
+
+    .ktu-dropdown-menu {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      min-width: 250px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+      padding: 6px;
+      z-index: 100;
+      margin-top: 4px;
+    }
+
+    .ktu-dropdown:hover .ktu-dropdown-menu,
+    .ktu-dropdown:focus-within .ktu-dropdown-menu {
+      display: block;
+    }
+
+    .ktu-dropdown-menu a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: #334155;
+      text-decoration: none;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .ktu-dropdown-menu a:hover {
+      background: #eef2ff;
+      color: #4f46e5;
+    }
+
+    /* Hamburger & MENU Button */
+    .ktu-hamburger-btn {
+      height: 38px;
+      padding: 0 12px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      display: inline-flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .ktu-hamburger-btn:hover {
+      background: #f8fafc;
+      border-color: #002147;
+    }
+
+    .ktu-hamburger-icon {
+      width: 18px;
+      height: 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .hamburger-bar {
+      width: 18px;
+      height: 2px;
+      background: #002147;
+      border-radius: 2px;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+
+    .ktu-menu-label {
+      font-size: 0.75rem;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      color: #002147;
+    }
+
+    /* Active Hamburger Icon (transforms to X) */
+    .ktu-hamburger-btn.is-active {
+      background: #002147;
+      border-color: #002147;
+    }
+
+    .ktu-hamburger-btn.is-active .ktu-menu-label {
+      color: #ffffff;
+    }
+
+    .ktu-hamburger-btn.is-active .hamburger-bar {
+      background: #ffffff;
+    }
+
+    .ktu-hamburger-btn.is-active .hamburger-bar:nth-child(1) {
+      transform: translateY(6px) rotate(45deg);
+    }
+    .ktu-hamburger-btn.is-active .hamburger-bar:nth-child(2) {
+      opacity: 0;
+    }
+    .ktu-hamburger-btn.is-active .hamburger-bar:nth-child(3) {
+      transform: translateY(-6px) rotate(-45deg);
+    }
+
+    /* ==========================================================================
+       Expandable Navigation Drawer Menu (Matching ktu.edu.gh mobile menu)
+       ========================================================================== */
+    .ktu-nav-drawer {
+      display: none;
+      background: #ffffff;
+      border-bottom: 2px solid #002147;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+
+    .ktu-nav-drawer.open {
+      display: block;
+      animation: navSlideDown 0.25s ease-out forwards;
+    }
+
+    @keyframes navSlideDown {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .ktu-menu-list {
+      list-style: none;
+      margin: 0;
+      padding: 8px 0 16px 0;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .ktu-menu-item {
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .ktu-menu-item:last-child {
+      border-bottom: none;
+    }
+
+    .ktu-menu-link,
+    .ktu-accordion-toggle {
+      width: 100%;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 24px;
+      color: #0f172a;
+      text-decoration: none;
+      font-size: 1.05rem;
+      font-weight: 700;
+      background: none;
+      border: none;
+      text-align: left;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .ktu-menu-link:hover,
+    .ktu-accordion-toggle:hover {
+      background: #f8fafc;
+      color: #4f46e5;
+    }
+
+    .ktu-caret-icon {
+      font-size: 0.85rem;
+      color: #475569;
+      transition: transform 0.2s ease;
+    }
+
+    .ktu-accordion-toggle.expanded .ktu-caret-icon {
+      transform: rotate(180deg);
+      color: #4f46e5;
+    }
+
+    /* Submenu Accordion Drawer */
+    .ktu-submenu-list {
+      display: none;
+      list-style: none;
+      margin: 0;
+      padding: 4px 0 8px 0;
+      background: #f8fafc;
+      border-top: 1px solid #edf2f7;
+    }
+
+    .ktu-submenu-list.open {
+      display: block;
+    }
+
+    .ktu-submenu-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 36px;
+      color: #334155;
+      text-decoration: none;
+      font-size: 0.9375rem;
+      font-weight: 500;
+      transition: all 0.15s ease;
+    }
+
+    .ktu-submenu-link:hover {
+      background: #eef2ff;
+      color: #4f46e5;
+      padding-left: 42px;
+    }
+
+    .ktu-submenu-link i {
+      font-size: 1rem;
+      color: #6366f1;
+    }
+
+    .user-pill-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8125rem;
+      color: #15803d;
+      font-weight: 700;
+      background: #dcfce7;
+      padding: 2px 8px;
+      border-radius: 9999px;
+    }
   </style>
   {% block extra_head %}{% endblock %}
 </head>
 <body class="{% if is_mobile %}is-mobile{% else %}is-desktop{% endif %}">
-  <header class="app-header">
-    <div class="header-container">
-      <a href="{{ url_for('feed.index') }}" class="brand-logo">
-        <span class="brand-icon">🎓</span>
-        <span class="brand-text">{{ app_name|default('CampusSocial') }}</span>
+
+  <!-- ======================================================================== -->
+  <!-- 1. Top Institutional Navy Bar with Search & Quick Links                  -->
+  <!-- ======================================================================== -->
+  <div class="ktu-top-bar">
+    <div class="ktu-top-inner">
+      <div class="ktu-top-links">
+        <a href="{{ url_for('feed.index') }}" class="ktu-top-link">Campus Feed</a>
+        <a href="{{ url_for('auth.onboarding') }}" class="ktu-top-link">Apply / Onboarding</a>
+        <a href="{{ url_for('utility.get_facilities') }}" class="ktu-top-link">Facility Status</a>
+        <a href="{{ url_for('culture.aux_battle') }}" class="ktu-top-link">87.7 FM Aux</a>
+      </div>
+
+      <form action="{{ url_for('feed.index') }}" method="GET" class="ktu-search-form">
+        <input
+          type="search"
+          name="q"
+          placeholder="Search campus notices, courses, brainrot, students..."
+          class="ktu-search-input"
+          aria-label="Search campus"
+        >
+        <button type="submit" class="ktu-search-btn" aria-label="Submit search">
+          <i class="bi bi-search"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================================================================== -->
+  <!-- 2. Main Header with Crest Logo & Hamburger Menu Button                  -->
+  <!-- ======================================================================== -->
+  <header class="ktu-main-header">
+    <div class="ktu-header-container">
+      
+      <!-- Official KTU Logo & Text Lockup -->
+      <a href="{{ url_for('feed.index') }}" class="ktu-brand-lockup" title="Koforidua Technical University">
+        <img
+          src="https://lookaside.fbsbx.com/lookaside/crawler/media/?media_id=100069632100022"
+          alt="Koforidua Technical University Crest"
+          class="ktu-crest-logo"
+          loading="eager"
+          onerror="this.onerror=null; this.src='https://api.dicebear.com/7.x/identicon/svg?seed=KTU';"
+        >
+        <div class="ktu-brand-text">
+          <span class="ktu-brand-line1">KOFORIDUA</span>
+          <span class="ktu-brand-line2">TECHNICAL</span>
+          <span class="ktu-brand-line3">UNIVERSITY</span>
+        </div>
       </a>
 
-      <nav class="header-nav">
-        <a href="{{ url_for('feed.index') }}" class="nav-link">Feed</a>
-        <a href="{{ url_for('vlogs.vlog_feed') }}" class="nav-link nav-vlogs-link" title="30-Second Campus Vlogs">
-          <span>📹 Vlogs</span>
+      <!-- Desktop Horizontal Navigation Menu -->
+      <nav class="ktu-desktop-nav" aria-label="Desktop Navigation">
+        <a href="{{ url_for('feed.index') }}" class="ktu-desktop-nav-link">
+          <i class="bi bi-camera-video"></i> Feed
         </a>
-        <a href="{{ url_for('culture.aux_battle') }}" class="nav-link nav-aux-link" title="Daily Campus Aux Cord Battles">
-          <span>🎵 Aux</span>
+        <div class="ktu-dropdown">
+          <button type="button" class="ktu-desktop-nav-link" aria-haspopup="true">
+            <i class="bi bi-fire"></i> Campus Life <i class="bi bi-chevron-down" style="font-size: 0.75rem;"></i>
+          </button>
+          <div class="ktu-dropdown-menu">
+            <a href="{{ url_for('culture.brainrot_hub') }}"><i class="bi bi-emoji-laughing"></i> Meme Vault & Hall Wars</a>
+            <a href="{{ url_for('culture.aux_battle') }}"><i class="bi bi-music-note-beamed"></i> 87.7 FM Aux Cord Battles</a>
+            <a href="{{ url_for('vlogs.vlog_feed') }}"><i class="bi bi-camera-video"></i> 30s Campus Micro-Vlogs</a>
+            <a href="{{ url_for('messages.index') }}"><i class="bi bi-chat-dots"></i> Peer Direct Messages</a>
+          </div>
+        </div>
+        <div class="ktu-dropdown">
+          <button type="button" class="ktu-desktop-nav-link" aria-haspopup="true">
+            <i class="bi bi-mortarboard"></i> Academics <i class="bi bi-chevron-down" style="font-size: 0.75rem;"></i>
+          </button>
+          <div class="ktu-dropdown-menu">
+            <a href="{{ url_for('utility.get_courses') }}"><i class="bi bi-mortarboard"></i> Course & Lecturer Reviews</a>
+            <a href="{{ url_for('utility.roulette_matcher') }}"><i class="bi bi-people"></i> Study Buddy Roulette</a>
+            <a href="{{ url_for('utility.get_skill_swaps') }}"><i class="bi bi-arrow-left-right"></i> Skill & Favor Barter</a>
+          </div>
+        </div>
+        <a href="{{ url_for('auth.onboarding') }}" class="ktu-desktop-nav-link">
+          <i class="bi bi-card-checklist"></i> Admissions
         </a>
-        <a href="{{ url_for('culture.brainrot_hub') }}" class="nav-link" title="Campus Brainrot & Meme Vault">
-          <span>🧠 Brainrot</span>
-        </a>
-        {% if current_user.is_authenticated and current_user.username %}
-          {% if current_user.is_admin %}
-            <a href="{{ url_for('admin.dashboard') }}" class="nav-link nav-admin-badge" title="Safety Command Center">
-              <span>🛡️ Admin</span>
-            </a>
-          {% endif %}
-          <a href="{{ url_for('messages.index') }}" class="nav-link nav-messages-link">
-            <span>Messages</span>
-            <span class="nav-unread-dot" id="navUnreadBadge" style="display: none;"></span>
-          </a>
-          <a href="{{ url_for('profile.view_profile', username=current_user.username|default('user', true)) }}" class="nav-link">
-            @{{ current_user.username }}
-          </a>
-          <a href="{{ url_for('auth.logout') }}" class="nav-link nav-logout">Logout</a>
-        {% else %}
-          <a href="{{ url_for('auth.login') }}" class="nav-link">Log In</a>
-          <a href="{{ url_for('auth.register') }}" class="nav-link nav-highlight">Register</a>
-        {% endif %}
       </nav>
+
+      <!-- Hamburger MENU Toggle Button with Label -->
+      <button
+        type="button"
+        id="ktuHamburgerBtn"
+        class="ktu-hamburger-btn"
+        aria-label="Toggle navigation menu"
+        aria-expanded="false"
+      >
+        <span class="ktu-hamburger-icon">
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+        </span>
+        <span class="ktu-menu-label">MENU</span>
+      </button>
+
     </div>
+
+    <!-- ====================================================================== -->
+    <!-- 3. Navigation Drawer Menu (Exact list structure from screenshot)      -->
+    <!-- ====================================================================== -->
+    <nav id="ktuNavDrawer" class="ktu-nav-drawer" aria-label="Main menu">
+      <ul class="ktu-menu-list">
+        
+        <!-- 1. Home -->
+        <li class="ktu-menu-item">
+          <a href="{{ url_for('feed.index') }}" class="ktu-menu-link">
+            <span>Home</span>
+          </a>
+        </li>
+
+        <!-- 2. About (Expandable) -->
+        <li class="ktu-menu-item">
+          <button type="button" class="ktu-accordion-toggle" onclick="toggleKtuMenu('submenuAbout', this)">
+            <span>About</span>
+            <i class="bi bi-chevron-down ktu-caret-icon"></i>
+          </button>
+          <ul id="submenuAbout" class="ktu-submenu-list">
+            <li>
+              <a href="{{ url_for('feed.index') }}" class="ktu-submenu-link">
+                <i class="bi bi-info-circle"></i> About KTU CampusSocial
+              </a>
+            </li>
+            <li>
+              <a href="{{ url_for('auth.register') }}" class="ktu-submenu-link">
+                <i class="bi bi-shield-check"></i> Institutional Student Accreditation
+              </a>
+            </li>
+            <li>
+              <a href="{{ url_for('utility.get_facilities') }}" class="ktu-submenu-link">
+                <i class="bi bi-geo-alt"></i> Campus Map & Key Facilities
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <!-- 3. Academics (Expandable) -->
+        <li class="ktu-menu-item">
+          <button type="button" class="ktu-accordion-toggle" onclick="toggleKtuMenu('submenuAcademics', this)">
+            <span>Academics</span>
+            <i class="bi bi-chevron-down ktu-caret-icon"></i>
+          </button>
+          <ul id="submenuAcademics" class="ktu-submenu-list">
+            <li>
+              <a href="{{ url_for('utility.get_courses') }}" class="ktu-submenu-link">
+                <i class="bi bi-mortarboard"></i> Course & Lecturer Reviews
+              </a>
+            </li>
+            <li>
+              <a href="{{ url_for('auth.onboarding') }}" class="ktu-submenu-link">
+                <i class="bi bi-journal-text"></i> Official 2026 Academic Catalog
+              </a>
+            </li>
+            <li>
+              <a href="{{ url_for('utility.roulette_matcher') }}" class="ktu-submenu-link">
+                <i class="bi bi-people"></i> Library Study Roulette & Partners
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <!-- 4. Admissions & Student Onboarding (Expandable) -->
+        <li class="ktu-menu-item">
+          <button type="button" class="ktu-accordion-toggle" onclick="toggleKtuMenu('submenuAdmissions', this)">
+            <span>Admissions</span>
+            <i class="bi bi-chevron-down ktu-caret-icon"></i>
+          </button>
+          <ul id="submenuAdmissions" class="ktu-submenu-list">
+            <li>
+              <a href="{{ url_for('auth.register') }}" class="ktu-submenu-link">
+                <i class="bi bi-person-plus"></i> Student Account Registration
+              </a>
+            </li>
+            <li>
+              <a href="{{ url_for('auth.onboarding') }}" class="ktu-submenu-link">
+                <i class="bi bi-card-checklist"></i> Academic Profile Onboarding Wizard
+              </a>
+            </li>
+            <li>
+              <a href="{{ url_for('auth.login') }}" class="ktu-submenu-link">
+                <i class="bi bi-box-arrow-in-right"></i> Student Portal Sign In
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <!-- 5. Research & Creative Culture (Expandable) -->
+        <li class="ktu-menu-item">
+          <button type="button" class="ktu-accordion-toggle" onclick="toggleKtuMenu('submenuResearch', this)">
+            <span>Research</span>
+            <i class="bi bi-chevron-down ktu-caret-icon"></i>
+          </button>
+          <ul id="submenuResearch" class="ktu-submenu-list">
+            <li>
+              <a href="{{ url_for('culture.aux_battle') }}" class="ktu-submenu-link">
+                <i class="bi bi-music-note-beamed"></i> Daily Aux Cord Battles & Audio Lab
+              </a>
+            </li>
+            <li>
+              <a href="{{ url_for('culture.brainrot_hub') }}" class="ktu-submenu-link">
+                <i class="bi bi-emoji-laughing"></i> Campus Meme & Culture Vault
+              </a>
+            </li>
+            <li>
+              <a href="{{ url_for('vlogs.vlog_feed') }}" class="ktu-submenu-link">
+                <i class="bi bi-camera-video"></i> 30-Second Campus Micro-Vlogs
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <!-- 6. Library & Utilities -->
+        <li class="ktu-menu-item">
+          <a href="{{ url_for('utility.get_facilities') }}" class="ktu-menu-link">
+            <span>Library</span>
+          </a>
+        </li>
+
+        <!-- 7. Campus (Expandable) -->
+        <li class="ktu-menu-item">
+          <button type="button" class="ktu-accordion-toggle" onclick="toggleKtuMenu('submenuCampus', this)">
+            <span>Campus</span>
+            <i class="bi bi-chevron-down ktu-caret-icon"></i>
+          </button>
+          <ul id="submenuCampus" class="ktu-submenu-list">
+            <li>
+              <a href="{{ url_for('utility.get_facilities') }}" class="ktu-submenu-link">
+                <i class="bi bi-speedometer2"></i> Live Facility & Gym Occupancy
+              </a>
+            </li>
+            <li>
+              <a href="{{ url_for('utility.get_skill_swaps') }}" class="ktu-submenu-link">
+                <i class="bi bi-arrow-left-right"></i> Student Favor & Skill Swap Board
+              </a>
+            </li>
+            <li>
+              <a href="{{ url_for('messages.index') }}" class="ktu-submenu-link">
+                <i class="bi bi-chat-dots"></i> Peer Direct Messages
+              </a>
+            </li>
+            {% if current_user.is_authenticated and current_user.username %}
+              <li>
+                <a href="{{ url_for('profile.view_profile', username=current_user.username|default('user', true)) }}" class="ktu-submenu-link">
+                  <i class="bi bi-person-circle"></i> Profile (@{{ current_user.username }})
+                  <span class="user-pill-badge">Active</span>
+                </a>
+              </li>
+              {% if current_user.is_admin %}
+                <li>
+                  <a href="{{ url_for('admin.dashboard') }}" class="ktu-submenu-link" style="color: #b91c1c;">
+                    <i class="bi bi-shield-lock"></i> Campus Safety Admin Console
+                  </a>
+                </li>
+              {% endif %}
+              <li>
+                <a href="{{ url_for('auth.logout') }}" class="ktu-submenu-link" style="color: #dc2626;">
+                  <i class="bi bi-box-arrow-right"></i> Sign Out
+                </a>
+              </li>
+            {% else %}
+              <li>
+                <a href="{{ url_for('auth.login') }}" class="ktu-submenu-link">
+                  <i class="bi bi-box-arrow-in-right"></i> Log In
+                </a>
+              </li>
+              <li>
+                <a href="{{ url_for('auth.register') }}" class="ktu-submenu-link">
+                  <i class="bi bi-person-plus"></i> Register
+                </a>
+              </li>
+            {% endif %}
+          </ul>
+        </li>
+
+      </ul>
+    </nav>
   </header>
 
+  <!-- ======================================================================== -->
+  <!-- 4. Flash Notifications & Main Page Container                             -->
+  <!-- ======================================================================== -->
   <main class="app-content">
     <div class="main-container">
       {% with messages = get_flashed_messages(with_categories=true) %}
@@ -84,6 +738,71 @@
 
   <!-- Reusable Universal Safety Report Modal -->
   {% include 'components/report_modal.html' %}
+
+  <!-- Core JavaScript for Hamburger Menu Toggle & Accordion Dropdowns -->
+  <script>
+    (function() {
+      const hamburgerBtn = document.getElementById('ktuHamburgerBtn');
+      const navDrawer = document.getElementById('ktuNavDrawer');
+
+      // Hamburger button click toggle
+      if (hamburgerBtn && navDrawer) {
+        hamburgerBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          const isOpen = navDrawer.classList.contains('open');
+          if (isOpen) {
+            navDrawer.classList.remove('open');
+            hamburgerBtn.classList.remove('is-active');
+            hamburgerBtn.setAttribute('aria-expanded', 'false');
+          } else {
+            navDrawer.classList.add('open');
+            hamburgerBtn.classList.add('is-active');
+            hamburgerBtn.setAttribute('aria-expanded', 'true');
+          }
+        });
+      }
+
+      // Accordion dropdown submenus
+      window.toggleKtuMenu = function(submenuId, btnElement) {
+        const targetSubmenu = document.getElementById(submenuId);
+        if (!targetSubmenu) return;
+
+        const isExpanded = targetSubmenu.classList.contains('open');
+
+        // Close other submenus for a clean accordion effect
+        document.querySelectorAll('.ktu-submenu-list').forEach(function(sub) {
+          if (sub.id !== submenuId) {
+            sub.classList.remove('open');
+          }
+        });
+        document.querySelectorAll('.ktu-accordion-toggle').forEach(function(btn) {
+          if (btn !== btnElement) {
+            btn.classList.remove('expanded');
+          }
+        });
+
+        // Toggle clicked submenu
+        if (isExpanded) {
+          targetSubmenu.classList.remove('open');
+          btnElement.classList.remove('expanded');
+        } else {
+          targetSubmenu.classList.add('open');
+          btnElement.classList.add('expanded');
+        }
+      };
+
+      // Close drawer when clicking outside
+      document.addEventListener('click', function(event) {
+        if (navDrawer && navDrawer.classList.contains('open')) {
+          if (!navDrawer.contains(event.target) && !hamburgerBtn.contains(event.target)) {
+            navDrawer.classList.remove('open');
+            hamburgerBtn.classList.remove('is-active');
+            hamburgerBtn.setAttribute('aria-expanded', 'false');
+          }
+        }
+      });
+    })();
+  </script>
 
   <script src="{{ url_for('static', filename='js/main.js') }}"></script>
   {% block extra_scripts %}{% endblock %}
