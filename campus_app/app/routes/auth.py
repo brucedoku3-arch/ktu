@@ -1,3 +1,4 @@
+import random
 import re
 from urllib.parse import urljoin, urlparse
 
@@ -96,6 +97,15 @@ def wants_json() -> bool:
 
 
 # -----------------------------------------------------------------------------
+# Catalog API Route (GET)
+# -----------------------------------------------------------------------------
+@auth_bp.route("/catalog", methods=["GET"])
+def get_catalog():
+    """Returns the KTU Academic Catalog for interactive dropdown UI population."""
+    return jsonify({"status": "success", "catalog": KTU_ACADEMIC_CATALOG}), 200
+
+
+# -----------------------------------------------------------------------------
 # Registration & Landing Endpoint (GET & POST)
 # -----------------------------------------------------------------------------
 @auth_bp.route("/", methods=["GET"])
@@ -178,8 +188,6 @@ def register():
             elif User.query.filter_by(email=email).first():
                 errors.append("An account with this email address is already registered.")
             elif derived_student_id and User.query.filter_by(student_id=derived_student_id).first():
-                # Append random digits if collision occurs
-                import random
                 derived_student_id = f"{derived_student_id}-{random.randint(100, 999)}"
 
         # Return errors if validation failed
@@ -289,16 +297,14 @@ def onboarding():
             errors.append("Please select a valid gender option (Male, Female, or Prefer not to say).")
 
         # Validate Step 2: Academic Details
-        # Clean level string to standard "100", "200", "300", "400"
         normalized_level = level.replace("Level", "").strip()
         if normalized_level not in ["100", "200", "300", "400"]:
             errors.append("Please select your academic year / level (Level 100, 200, 300, or 400).")
 
-        if not faculty:
-            errors.append("Please select your Faculty or Department.")
-
-        if not course:
-            errors.append("Please select your Course / Program of Study.")
+        if not faculty or faculty not in KTU_ACADEMIC_CATALOG:
+            errors.append("Please select a valid Faculty or Department.")
+        elif not course or course not in KTU_ACADEMIC_CATALOG.get(faculty, []):
+            errors.append(f"Selected course is not listed under {faculty}.")
 
         # Handle Step 3: Avatar Upload or Preset
         avatar_filename = None
@@ -572,7 +578,7 @@ def get_current_user():
                 "is_onboarded": getattr(current_user, "is_onboarded", False),
                 "is_admin": current_user.is_admin,
                 "is_active": current_user.is_active,
-                "created_at": current_user.created_at.isoformat() if current_user.created_at else None,
+                "created_at": current_user.created_at.isoformat() if getattr(current_user, "created_at", None) else None,
             },
         }),
         200,
