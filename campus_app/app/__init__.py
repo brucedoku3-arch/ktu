@@ -18,16 +18,17 @@ login_manager = LoginManager()
 def set_sqlite_pragma(dbapi_connection, connection_record):
     """
     Configure SQLite connection pooling, WAL mode, and foreign keys
-    to handle concurrent writes without table locking ('database is locked').
+    only if running on a SQLite database driver.
     """
-    try:
-        cursor = dbapi_connection.cursor()
-        cursor.execute("PRAGMA journal_mode=WAL")
-        cursor.execute("PRAGMA synchronous=NORMAL")
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.close()
-    except Exception:
-        pass
+    if "sqlite" in str(dbapi_connection.__class__).lower():
+        try:
+            cursor = dbapi_connection.cursor()
+            cursor.execute("PRAGMA journal_mode=WAL")
+            cursor.execute("PRAGMA synchronous=NORMAL")
+            cursor.execute("PRAGMA foreign_keys=ON")
+            cursor.close()
+        except Exception:
+            pass
 
 
 def create_app(config_class="production"):
@@ -69,7 +70,7 @@ def create_app(config_class="production"):
     # Register models and login user_loader
     from app import models  # noqa: F401
 
-    # Ensure all SQLite database tables exist on application startup
+    # Ensure all database tables exist on application startup
     with app.app_context():
         db.create_all()
 
