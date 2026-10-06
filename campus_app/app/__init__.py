@@ -2,9 +2,7 @@ import os
 from flask import Flask, render_template, jsonify, redirect, request, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from flask_login import LoginManager
-
-from config import DevelopmentConfig
+from flask_login import LoginManager, current_user
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 
@@ -37,7 +35,8 @@ def create_app(config_class="production"):
     Initializes configuration, extensions, runtime folders, context processors, and blueprints.
     Accepts string ('production', 'development', 'testing') or configuration class.
     """
-    from config import config_by_name, DevelopmentConfig, ProductionConfig
+    from config import config_by_name, ProductionConfig
+
     if isinstance(config_class, str):
         config_obj = config_by_name.get(config_class.lower(), ProductionConfig)
     elif config_class is not None:
@@ -59,18 +58,21 @@ def create_app(config_class="production"):
     login_manager.init_app(app)
 
     # Initialize Security Rate Limiter Guardrails
-    from app.middleware.rate_limiter import rate_limiter
-    rate_limiter.init_app(app)
+    try:
+        from app.middleware.rate_limiter import rate_limiter
+        rate_limiter.init_app(app)
+    except ImportError:
+        pass
 
     # 2. Configure Flask-Login settings
     login_manager.login_view = "auth.login"
     login_manager.login_message = "Please log in to access this campus feature."
-    login_message_category = "info"
+    login_manager.login_message_category = "info"
 
     # Register models and login user_loader
     from app import models  # noqa: F401
 
-    # Ensure all database tables exist on application startup
+    # Ensure database tables exist on startup
     with app.app_context():
         db.create_all()
 
@@ -82,7 +84,12 @@ def create_app(config_class="production"):
         os.makedirs(upload_base, exist_ok=True)
         upload_subdirs = app.config.get(
             "UPLOAD_SUBDIRS",
-            {"avatars": "avatars", "memes": "memes", "fit_checks": "fit_checks", "vlogs": "vlogs"}
+            {
+                "avatars": "avatars",
+                "memes": "memes",
+                "fit_checks": "fit_checks",
+                "vlogs": "vlogs",
+            },
         )
         for folder_name in upload_subdirs.values():
             os.makedirs(os.path.join(upload_base, folder_name), exist_ok=True)
@@ -136,22 +143,28 @@ def create_app(config_class="production"):
     def root():
         """
         Default root landing route:
-        Whenever anyone opens the main site URL (/), the landing page is the very first page they see.
-        If the user is already logged in:
-          - If onboarded: redirects to the main campus feed (/feed).
-          - If pending onboarding: redirects to (/auth/onboarding).
-        If unauthenticated:
-          - Shows the landing page (register.html).
+        - Logged-in & onboarded -> Campus Feed (/feed)
+        - Logged-in & pending onboarding -> Onboarding Wizard (/auth/onboarding)
+        - Unauthenticated -> Landing/Registration Page (register.html)
         """
-        from flask_login import current_user
         if current_user.is_authenticated:
-            if not getattr(current_user, "is_onboarded", True):
+            if not getattr(current_user, "is_onboarded", False):
                 return redirect(url_for("auth.onboarding"))
             return redirect(url_for("feed.index"))
         return render_template("auth/register.html")
 
     # 6. Register modular Blueprints with explicit URL prefixes
-    from app.routes import main_bp, auth_bp, feed_bp, messages_bp, profile_bp, utility_bp, culture_bp, vlogs_bp, admin_bp
+    from app.routes import (
+        main_bp,
+        auth_bp,
+        feed_bp,
+        messages_bp,
+        profile_bp,
+        utility_bp,
+        culture_bp,
+        vlogs_bp,
+        admin_bp,
+    )
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp, url_prefix="/auth")
@@ -164,8 +177,11 @@ def create_app(config_class="production"):
     app.register_blueprint(admin_bp, url_prefix="/admin")
 
     # Direct top-level /report endpoint mapping to admin reporting handler
-    from app.routes.admin import submit_report
-    app.add_url_rule("/report", "public_report", submit_report, methods=["POST"])
+    try:
+        from app.routes.admin import submit_report
+        app.add_url_rule("/report", "public_report", submit_report, methods=["POST"])
+    except ImportError:
+        pass
 
     # 7. Initialize SocketIO
     try:
