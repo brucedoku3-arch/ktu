@@ -185,6 +185,12 @@ def ensure_seeded_data():
 # =============================================================================
 # 1. FACILITY TRACKER (PROMPT 2.3)
 # =============================================================================
+@utility_bp.route("/", methods=["GET"])
+def index():
+    """Default utilities landing route."""
+    return redirect(url_for("utility.get_facilities"))
+
+
 @utility_bp.route("/facilities", methods=["GET"])
 def get_facilities():
     """Live crowdsourced facility occupancy tracker."""

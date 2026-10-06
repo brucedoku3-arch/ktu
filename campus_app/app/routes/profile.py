@@ -47,6 +47,14 @@ def wants_json() -> bool:
 # -----------------------------------------------------------------------------
 # View Profile Endpoint (GET /profile/<username>)
 # -----------------------------------------------------------------------------
+@profile_bp.route("/", methods=["GET"])
+def index():
+    """Redirects to authenticated student's own profile or login."""
+    if current_user.is_authenticated and getattr(current_user, "username", None):
+        return redirect(url_for("profile.view_profile", username=current_user.username))
+    return redirect(url_for("auth.login"))
+
+
 @profile_bp.route("/<username>", methods=["GET"])
 def view_profile(username: str):
     """

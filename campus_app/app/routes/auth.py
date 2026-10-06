@@ -349,18 +349,20 @@ def onboarding():
             return render_template(
                 "auth/onboarding.html",
                 catalog=KTU_ACADEMIC_CATALOG,
+                user=current_user,
                 selected_gender=gender,
                 selected_level=normalized_level,
                 selected_faculty=faculty,
                 selected_course=course,
                 bio=bio,
+                avatar_choice=avatar_choice,
             ), 422
 
-        # Save profile details to User model
-        current_user.gender = gender
-        current_user.level = normalized_level
-        current_user.faculty = faculty
-        current_user.course = course
+        # Save profile details to User model with safe null-checks
+        current_user.gender = gender or None
+        current_user.level = normalized_level or None
+        current_user.faculty = faculty or None
+        current_user.course = course or None
         if bio:
             current_user.bio = bio[:160]
 
@@ -368,18 +370,30 @@ def onboarding():
             current_user.avatar_url = avatar_filename
         elif avatar_choice:
             current_user.avatar_url = avatar_choice
+        else:
+            current_user.avatar_url = "images/avatars/avatar1.png"
 
         current_user.is_onboarded = True
 
         try:
             db.session.commit()
-        except Exception:
+        except Exception as commit_err:
             db.session.rollback()
             err_msg = "Could not save your academic profile. Please try again."
             if wants_json():
-                return jsonify({"status": "error", "message": err_msg}), 500
+                return jsonify({"status": "error", "message": err_msg}), 400
             flash(err_msg, "error")
-            return render_template("auth/onboarding.html", catalog=KTU_ACADEMIC_CATALOG), 500
+            return render_template(
+                "auth/onboarding.html",
+                catalog=KTU_ACADEMIC_CATALOG,
+                user=current_user,
+                selected_gender=gender,
+                selected_level=normalized_level,
+                selected_faculty=faculty,
+                selected_course=course,
+                bio=bio,
+                avatar_choice=avatar_choice,
+            ), 400
 
         if wants_json():
             return (
@@ -390,11 +404,12 @@ def onboarding():
                         "redirect": url_for("feed.index"),
                         "user": {
                             "id": current_user.id,
-                            "full_name": current_user.full_name,
-                            "gender": current_user.gender,
-                            "level": current_user.level,
-                            "faculty": current_user.faculty,
-                            "course": current_user.course,
+                            "full_name": getattr(current_user, "full_name", "") or "",
+                            "gender": getattr(current_user, "gender", "") or "",
+                            "level": getattr(current_user, "level", "") or "",
+                            "faculty": getattr(current_user, "faculty", "") or "",
+                            "course": getattr(current_user, "course", "") or "",
+                            "avatar_url": getattr(current_user, "avatar_url", "") or "images/avatars/avatar1.png",
                             "is_onboarded": True,
                         },
                     }
@@ -409,6 +424,12 @@ def onboarding():
         "auth/onboarding.html",
         catalog=KTU_ACADEMIC_CATALOG,
         user=current_user,
+        selected_gender=getattr(current_user, "gender", "") or "",
+        selected_level=getattr(current_user, "level", "") or "",
+        selected_faculty=getattr(current_user, "faculty", "") or "",
+        selected_course=getattr(current_user, "course", "") or "",
+        bio=getattr(current_user, "bio", "") or "",
+        avatar_choice=getattr(current_user, "avatar_url", "") or "images/avatars/avatar1.png",
     )
 
 

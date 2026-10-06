@@ -210,6 +210,7 @@ def submit_report():
 # 1. ADMIN OVERVIEW DASHBOARD (GET /admin/)
 # =====================================================================
 @admin_bp.route("/", methods=["GET"])
+@admin_bp.route("/index", methods=["GET"])
 @admin_required
 def dashboard():
     """

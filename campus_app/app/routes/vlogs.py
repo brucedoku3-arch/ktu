@@ -39,6 +39,7 @@ def wants_json() -> bool:
 # A. TikTok-Style Vertical Vlog Feed (GET /vlogs/)
 # -----------------------------------------------------------------------------
 @vlogs_bp.route("/", methods=["GET"])
+@vlogs_bp.route("/feed", methods=["GET"])
 def vlog_feed():
     """
     Renders the TikTok-style vertical micro-vlog feed.
@@ -99,6 +100,12 @@ def vlog_feed():
         sort=sort,
         user_votes_map=user_votes_map,
     )
+
+
+@vlogs_bp.route("/index", methods=["GET"])
+def index():
+    """Alias for backwards compatibility."""
+    return redirect(url_for("vlogs.vlog_feed"))
 
 
 # -----------------------------------------------------------------------------

@@ -138,6 +138,24 @@ def create_app(config_class="production"):
             "max_upload_size_mb": app.config.get("MAX_CONTENT_LENGTH", 16777216) // (1024 * 1024),
         }
 
+    # Custom template filter for resolving any avatar path safely without 404s
+    @app.template_filter("avatar_url")
+    def avatar_url_filter(raw_path):
+        if not raw_path:
+            return "/static/images/avatars/avatar1.png"
+        path_str = str(raw_path).strip()
+        if path_str.startswith("http://") or path_str.startswith("https://"):
+            return path_str
+        if path_str.startswith("/static/"):
+            return path_str
+        if path_str.startswith("images/avatars/") or path_str.startswith("avatars/"):
+            return f"/static/{path_str}"
+        if path_str.startswith("avatar") and path_str.endswith(".png"):
+            return f"/static/images/avatars/{path_str}"
+        if path_str.startswith("uploads/"):
+            return f"/static/{path_str}"
+        return f"/static/uploads/{path_str}"
+
     # 5. Core routes: Health check and root redirect
     @app.route("/health", methods=["GET"])
     def health_check():

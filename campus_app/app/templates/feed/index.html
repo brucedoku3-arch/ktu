@@ -1,169 +1,425 @@
 {% extends "base.html" %}
 
-{% block title %}Campus Feed - {{ app_name }}{% endblock %}
+{% block title %}Campus Feed · KTU CampusSocial{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-slate-900 text-slate-100">
+<div class="feed-container">
   
-  <!-- Navigation Header -->
-  <header class="sticky top-0 z-50 bg-slate-950/90 backdrop-blur-md border-b border-slate-800">
-    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-      
-      <!-- Logo & App Name -->
-      <a href="{{ url_for('feed.index') }}" class="flex items-center space-x-3">
-        <div class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-600/30">
-          C
-        </div>
-        <span class="font-bold text-lg text-white tracking-wide">{{ app_name }}</span>
-      </a>
-
-      <!-- Navigation Links -->
-      <nav class="hidden md:flex items-center space-x-1">
-        <a href="{{ url_for('feed.index') }}" class="px-4 py-2 rounded-lg bg-indigo-600/20 text-indigo-400 font-medium text-sm flex items-center space-x-2 border border-indigo-500/30">
-          <span>Feed</span>
-        </a>
-        <a href="{{ url_for('vlogs.index') }}" class="px-4 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 font-medium text-sm transition">
-          <span>Vlogs</span>
-        </a>
-        <a href="{{ url_for('messages.index') }}" class="px-4 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 font-medium text-sm transition">
-          <span>Messages</span>
-        </a>
-        <a href="{{ url_for('utility.index') }}" class="px-4 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 font-medium text-sm transition">
-          <span>Campus Utilities</span>
-        </a>
-      </nav>
-
-      <!-- User Action / Profile Menu -->
-      <div class="flex items-center space-x-3">
-        {% if current_user.is_admin %}
-          <a href="{{ url_for('admin.index') }}" class="px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-400 text-xs font-semibold border border-amber-500/20 hover:bg-amber-500/20 transition">
-            Admin Console
-          </a>
+  <!-- Welcome Banner -->
+  <div class="feed-welcome-banner">
+    <div class="banner-avatar-wrap">
+      <img
+        src="{{ current_user.avatar_url|avatar_url }}"
+        alt="{{ current_user.full_name|default(current_user.username)|e }}"
+        class="banner-avatar-img"
+        onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/avatars/avatar1.png') }}';"
+      >
+    </div>
+    <div class="banner-text-wrap">
+      <h1 class="banner-title">Welcome back, {{ current_user.full_name|default('@' ~ current_user.username)|e }}!</h1>
+      <p class="banner-meta">
+        <span class="meta-tag"><i class="bi bi-mortarboard-fill"></i> Level {{ current_user.level|default('100') }}</span>
+        <span class="meta-tag"><i class="bi bi-building"></i> {{ current_user.faculty|default('KTU') }}</span>
+        {% if current_user.course %}
+          <span class="meta-tag meta-course"><i class="bi bi-book"></i> {{ current_user.course }}</span>
         {% endif %}
+      </p>
+    </div>
+  </div>
 
-        <a href="{{ url_for('profile.index') }}" class="flex items-center space-x-2 group">
-          <div class="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 overflow-hidden flex items-center justify-center text-xs font-bold text-indigo-400 group-hover:border-indigo-500 transition">
-            {% if current_user.avatar_url %}
-              <img src="{{ current_user.avatar_url }}" alt="{{ current_user.full_name }}" class="w-full h-full object-cover">
-            {% else %}
-              {{ current_user.full_name[:2].upper() if current_user.full_name else 'US' }}
+  <!-- Create Post Card -->
+  <div class="feed-create-card">
+    <div class="create-card-header">
+      <span class="create-card-title"><i class="bi bi-pencil-square text-primary"></i> Share with Campus</span>
+    </div>
+    <form action="{{ url_for('feed.create_post') }}" method="POST" class="create-post-form">
+      <textarea
+        name="content"
+        rows="3"
+        class="create-post-textarea"
+        placeholder="What's happening around KTU? Share an academic update, hostel news, or campus announcement..."
+        maxlength="500"
+        required
+      ></textarea>
+
+      <div class="create-card-footer">
+        <div class="post-options-left">
+          <select name="category" class="category-select">
+            <option value="general">📢 General Update</option>
+            <option value="academic">📚 Academic & Exams</option>
+            <option value="hostel">🏠 Hostel & Campus Life</option>
+            <option value="meme">🎭 Campus Brainrot & Memes</option>
+            <option value="fit_check">👗 OOTD & Fit Check</option>
+          </select>
+
+          <label class="anon-toggle-label">
+            <input type="checkbox" name="is_anonymous" value="1">
+            <span>Post anonymously</span>
+          </label>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-post">
+          Post to Campus <i class="bi bi-send-fill ms-1"></i>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Feed Posts Stream -->
+  <div class="feed-stream">
+    {% if feed_items %}
+      {% for item in feed_items %}
+        <article class="feed-post-card">
+          <!-- Post Author Header -->
+          <div class="post-header">
+            <div class="post-author-info">
+              <img
+                src="{{ item.avatar|avatar_url }}"
+                alt="{{ item.author|e }}"
+                class="post-author-avatar"
+                onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/avatars/avatar1.png') }}';"
+              >
+              <div class="post-author-meta">
+                <div class="author-name-row">
+                  <span class="author-name">{{ item.author|e }}</span>
+                  {% if item.is_official %}
+                    <span class="badge-official"><i class="bi bi-patch-check-fill"></i> OFFICIAL</span>
+                  {% endif %}
+                </div>
+                <span class="post-time">{{ item.timestamp }}</span>
+              </div>
+            </div>
+
+            {% if item.category %}
+              <span class="category-pill">{{ item.category }}</span>
             {% endif %}
           </div>
-        </a>
-        
-        <a href="{{ url_for('auth.logout') }}" class="text-xs text-slate-400 hover:text-rose-400 transition ml-2">
-          Logout
-        </a>
-      </div>
 
-    </div>
-  </header>
+          <!-- Post Content -->
+          <div class="post-body">
+            <p class="post-text">{{ item.content|e }}</p>
+            {% if item.media_url %}
+              <div class="post-media-wrap">
+                <img src="{{ item.media_url|avatar_url }}" alt="Post attachment" class="post-media-img">
+              </div>
+            {% endif %}
+          </div>
 
-  <!-- Main Feed Body -->
-  <main class="max-w-3xl mx-auto px-4 py-6 space-y-6">
-
-    <!-- Flash Notifications -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <div class="space-y-2">
-          {% for category, message in messages %}
-            <div class="p-4 rounded-xl border text-sm font-medium flex items-center justify-between
-              {% if category == 'error' %} bg-rose-500/10 border-rose-500/30 text-rose-300
-              {% elif category == 'warning' %} bg-amber-500/10 border-amber-500/30 text-amber-300
-              {% else %} bg-indigo-500/10 border-indigo-500/30 text-indigo-300 {% endif %}">
-              <span>{{ message }}</span>
-            </div>
-          {% endfor %}
-        </div>
-      {% endif %}
-    {% endwith %}
-
-    <!-- Create Post Card -->
-    <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 shadow-xl">
-      <div class="flex items-start space-x-3">
-        <div class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-indigo-400 text-sm flex-shrink-0">
-          {{ current_user.full_name[:2].upper() if current_user.full_name else 'ME' }}
-        </div>
-        <form action="{{ url_for('feed.create_post') }}" method="POST" class="flex-1 space-y-3">
-          <textarea 
-            name="content" 
-            rows="3" 
-            placeholder="Share an update, announcement, or meme with campus..." 
-            class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none"
-            required></textarea>
-
-          <div class="flex items-center justify-between pt-1">
-            <div class="flex space-x-2 text-slate-400 text-xs">
-              <span class="bg-slate-900 border border-slate-800 px-2.5 py-1 rounded-lg">
-                Faculty: {{ current_user.faculty or 'General' }}
+          <!-- Interaction Bar -->
+          <div class="post-footer">
+            <div class="post-score-box">
+              <span class="score-label">Karma:</span>
+              <span class="score-value {% if item.score|default(0) > 0 %}score-pos{% endif %}">
+                {{ item.score|default(0) }}
               </span>
             </div>
-
-            <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs rounded-xl shadow-lg shadow-indigo-600/30 transition">
-              Post Update
-            </button>
+            <div class="post-actions">
+              <button type="button" class="post-action-btn" title="Like">
+                <i class="bi bi-hand-thumbs-up"></i> Upvote ({{ item.upvotes|default(0) }})
+              </button>
+              <button
+                type="button"
+                class="post-action-btn btn-report"
+                onclick="openSafetyReportModal('post', {{ item.id }})"
+                title="Report Content"
+              >
+                <i class="bi bi-flag"></i> Report
+              </button>
+            </div>
           </div>
-        </form>
+        </article>
+      {% endfor %}
+    {% else %}
+      <div class="empty-feed-card">
+        <i class="bi bi-chat-square-text empty-icon"></i>
+        <h3>No updates yet on the campus feed</h3>
+        <p>Be the first student to post an update or announcement above!</p>
       </div>
-    </div>
+    {% endif %}
+  </div>
 
-    <!-- Feed Stream -->
-    <div class="space-y-4">
-      {% if feed_items %}
-        {% for item in feed_items %}
-          <div class="bg-slate-950 border border-slate-800 rounded-2xl p-5 space-y-3 shadow-lg">
-            
-            <!-- Author Header -->
-            <div class="flex items-center justify-between">
-              <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-slate-300 text-xs">
-                  {{ item.author[:2].upper() }}
-                </div>
-                <div>
-                  <div class="flex items-center space-x-2">
-                    <h3 class="font-semibold text-sm text-slate-100">{{ item.author }}</h3>
-                    {% if item.is_official %}
-                      <span class="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 text-[10px] font-bold border border-indigo-500/30">
-                        OFFICIAL
-                      </span>
-                    {% endif %}
-                  </div>
-                  <p class="text-xs text-slate-500">{{ item.timestamp }}</p>
-                </div>
-              </div>
-
-              {% if item.category %}
-                <span class="text-xs text-slate-400 bg-slate-900 border border-slate-800 px-2.5 py-1 rounded-lg">
-                  {{ item.category }}
-                </span>
-              {% endif %}
-            </div>
-
-            <!-- Content -->
-            <p class="text-slate-300 text-sm leading-relaxed">
-              {{ item.content }}
-            </p>
-
-            <!-- Interaction Bar -->
-            <div class="pt-2 border-t border-slate-900 flex items-center space-x-6 text-xs text-slate-400">
-              <button class="hover:text-indigo-400 flex items-center space-x-1.5 transition">
-                <span>Like</span>
-              </button>
-              <button class="hover:text-indigo-400 flex items-center space-x-1.5 transition">
-                <span>Comment</span>
-              </button>
-            </div>
-
-          </div>
-        {% endfor %}
-      {% else %}
-        <div class="bg-slate-950 border border-slate-800 rounded-2xl p-8 text-center space-y-2">
-          <p class="text-slate-400 text-sm">No updates posted on the feed yet.</p>
-          <p class="text-xs text-slate-600">Be the first student to post an update above!</p>
-        </div>
-      {% endif %}
-    </div>
-
-  </main>
 </div>
+
+<style>
+  .feed-container {
+    max-width: 780px;
+    margin: 28px auto 60px auto;
+    padding: 0 16px;
+  }
+
+  .feed-welcome-banner {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  }
+
+  .banner-avatar-img {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #4f46e5;
+  }
+
+  .banner-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0 0 6px 0;
+  }
+
+  .banner-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0;
+  }
+
+  .meta-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #475569;
+    background: #f1f5f9;
+    padding: 3px 10px;
+    border-radius: 6px;
+  }
+
+  .feed-create-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  }
+
+  .create-card-header {
+    margin-bottom: 12px;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: #1e293b;
+  }
+
+  .create-post-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 0.9375rem;
+    font-family: inherit;
+    color: #0f172a;
+    resize: vertical;
+    min-height: 80px;
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+
+  .create-post-textarea:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+  }
+
+  .create-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .post-options-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .category-select {
+    padding: 7px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #334155;
+    background: #ffffff;
+  }
+
+  .anon-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8125rem;
+    color: #64748b;
+    cursor: pointer;
+  }
+
+  .btn-post {
+    padding: 9px 18px;
+    font-size: 0.875rem;
+  }
+
+  .feed-stream {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .feed-post-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+
+  .post-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .post-author-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .post-author-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #e2e8f0;
+  }
+
+  .author-name-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .author-name {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  .badge-official {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: #e0e7ff;
+    color: #4338ca;
+    font-size: 0.6875rem;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  .post-time {
+    font-size: 0.775rem;
+    color: #94a3b8;
+  }
+
+  .category-pill {
+    background: #f1f5f9;
+    color: #475569;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 9999px;
+  }
+
+  .post-body {
+    margin-bottom: 16px;
+  }
+
+  .post-text {
+    font-size: 0.9375rem;
+    color: #1e293b;
+    line-height: 1.55;
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .post-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    border-top: 1px solid #f1f5f9;
+  }
+
+  .post-score-box {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8125rem;
+    color: #64748b;
+  }
+
+  .score-value {
+    font-weight: 700;
+  }
+
+  .score-pos {
+    color: #15803d;
+  }
+
+  .post-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .post-action-btn {
+    background: none;
+    border: none;
+    padding: 4px 8px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.15s ease;
+  }
+
+  .post-action-btn:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+  }
+
+  .btn-report:hover {
+    color: #e11d48;
+  }
+
+  .empty-feed-card {
+    background: #ffffff;
+    border: 1px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 48px 24px;
+    text-align: center;
+    color: #64748b;
+  }
+
+  .empty-icon {
+    font-size: 2.5rem;
+    color: #94a3b8;
+    margin-bottom: 12px;
+    display: block;
+  }
+</style>
 {% endblock %}
