@@ -1,932 +1,169 @@
 {% extends "base.html" %}
 
-{% block title %}Campus Feed · CampusSocial{% endblock %}
+{% block title %}Campus Feed - {{ app_name }}{% endblock %}
 
 {% block content %}
-<div class="feed-layout">
-  <!-- Campus Micro-Vlogs (30-Second Stories Tray) -->
-  <section class="vlogs-stories-tray" aria-label="Campus Micro-Vlogs">
-    <div class="stories-scroll-container">
-      {% if current_user.is_authenticated %}
-        <button
-          type="button"
-          class="story-item story-create-btn"
-          onclick="document.getElementById('uploadVlogModal').style.display='flex';"
-          title="Upload campus story"
-        >
-          <div class="story-avatar-ring create-ring">
-            <span class="story-create-plus">+</span>
-          </div>
-          <span class="story-author-name">Your Story</span>
-        </button>
-      {% endif %}
+<div class="min-h-screen bg-slate-900 text-slate-100">
+  
+  <!-- Navigation Header -->
+  <header class="sticky top-0 z-50 bg-slate-950/90 backdrop-blur-md border-b border-slate-800">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      
+      <!-- Logo & App Name -->
+      <a href="{{ url_for('feed.index') }}" class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-600/30">
+          C
+        </div>
+        <span class="font-bold text-lg text-white tracking-wide">{{ app_name }}</span>
+      </a>
 
-      {% if recent_vlogs and recent_vlogs|length > 0 %}
-        {% for vlog in recent_vlogs %}
-          <div
-            class="story-item"
-            onclick="openVlogViewer({{ vlog.id }}, '{{ url_for('static', filename='uploads/' + vlog.video_url) }}', '{{ vlog.author.username }}', '{{ vlog.caption|default('')|e }}', {{ vlog.duration_seconds }}, {{ vlog.views_count }}, {{ vlog.likes_count }})"
-            title="Watch story by @{{ vlog.author.username }}"
-          >
-            <div class="story-avatar-ring active-ring">
-              {% if vlog.author.avatar_url and vlog.author.avatar_url != 'default_avatar.png' %}
-                <img
-                  src="{{ url_for('static', filename='uploads/' + vlog.author.avatar_url) }}"
-                  alt="@{{ vlog.author.username }}"
-                  class="story-avatar-thumb"
-                  onerror="this.src='{{ url_for('static', filename='uploads/avatars/default_avatar.png') }}';"
-                >
-              {% else %}
-                <div class="story-avatar-fallback">
-                  {{ vlog.author.username[:2]|upper }}
-                </div>
-              {% endif %}
-            </div>
-            <span class="story-author-name">@{{ vlog.author.username }}</span>
-          </div>
-        {% endfor %}
-      {% endif %}
-    </div>
-  </section>
-
-  <!-- Feed Header Controls: Categories, Sorting, and Post CTAs -->
-  <section class="feed-controls-card">
-    <div class="feed-controls-row">
-      <!-- Category Filter Pills -->
-      <nav class="category-pills" aria-label="Feed Categories">
-        <a
-          href="{{ url_for('feed.index', category='all', sort=active_sort) }}"
-          class="pill-btn {% if active_category == 'all' %}active{% endif %}"
-        >
-          All
+      <!-- Navigation Links -->
+      <nav class="hidden md:flex items-center space-x-1">
+        <a href="{{ url_for('feed.index') }}" class="px-4 py-2 rounded-lg bg-indigo-600/20 text-indigo-400 font-medium text-sm flex items-center space-x-2 border border-indigo-500/30">
+          <span>Feed</span>
         </a>
-        <a
-          href="{{ url_for('feed.index', category='memes', sort=active_sort) }}"
-          class="pill-btn {% if active_category in ('meme', 'memes') %}active{% endif %}"
-        >
-          Memes
+        <a href="{{ url_for('vlogs.index') }}" class="px-4 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 font-medium text-sm transition">
+          <span>Vlogs</span>
         </a>
-        <a
-          href="{{ url_for('feed.index', category='fit_checks', sort=active_sort) }}"
-          class="pill-btn {% if active_category in ('fit_check', 'fit_checks') %}active{% endif %}"
-        >
-          Fit Checks
+        <a href="{{ url_for('messages.index') }}" class="px-4 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 font-medium text-sm transition">
+          <span>Messages</span>
         </a>
-        <a
-          href="{{ url_for('feed.index', category='confessions', sort=active_sort) }}"
-          class="pill-btn {% if active_category in ('confession', 'confessions') %}active{% endif %}"
-        >
-          Confessions
-        </a>
-        <a
-          href="{{ url_for('feed.index', category='polls', sort=active_sort) }}"
-          class="pill-btn {% if active_category in ('poll', 'polls') %}active{% endif %}"
-        >
-          Polls
+        <a href="{{ url_for('utility.index') }}" class="px-4 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 font-medium text-sm transition">
+          <span>Campus Utilities</span>
         </a>
       </nav>
 
-      <!-- Sort & Action Controls -->
-      <div class="controls-right-actions">
-        <!-- Facility Tracker Quick Link -->
-        <a
-          href="{{ url_for('utility.get_facilities') }}"
-          class="btn btn-secondary btn-facilities-nav"
-          title="Live Campus Facilities Occupancy"
-        >
-          🏋️ Facilities
+      <!-- User Action / Profile Menu -->
+      <div class="flex items-center space-x-3">
+        {% if current_user.is_admin %}
+          <a href="{{ url_for('admin.index') }}" class="px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-400 text-xs font-semibold border border-amber-500/20 hover:bg-amber-500/20 transition">
+            Admin Console
+          </a>
+        {% endif %}
+
+        <a href="{{ url_for('profile.index') }}" class="flex items-center space-x-2 group">
+          <div class="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 overflow-hidden flex items-center justify-center text-xs font-bold text-indigo-400 group-hover:border-indigo-500 transition">
+            {% if current_user.avatar_url %}
+              <img src="{{ current_user.avatar_url }}" alt="{{ current_user.full_name }}" class="w-full h-full object-cover">
+            {% else %}
+              {{ current_user.full_name[:2].upper() if current_user.full_name else 'US' }}
+            {% endif %}
+          </div>
         </a>
-
-        <div class="sort-selector-wrapper">
-          <label for="feedSortSelect" class="sr-only">Sort By</label>
-          <select
-            id="feedSortSelect"
-            class="sort-dropdown"
-            onchange="window.location.href = this.value;"
-          >
-            <option
-              value="{{ url_for('feed.index', category=active_category, sort='trending') }}"
-              {% if active_sort == 'trending' %}selected{% endif %}
-            >
-              Trending
-            </option>
-            <option
-              value="{{ url_for('feed.index', category=active_category, sort='newest') }}"
-              {% if active_sort == 'newest' %}selected{% endif %}
-            >
-              Newest
-            </option>
-            <option
-              value="{{ url_for('feed.index', category=active_category, sort='top') }}"
-              {% if active_sort == 'top' %}selected{% endif %}
-            >
-              Top Karma
-            </option>
-          </select>
-        </div>
-
-        {% if current_user.is_authenticated %}
-          <div class="create-actions-dropdown">
-            <a href="{{ url_for('feed.create_post') }}" class="btn btn-primary btn-create-cta">
-              + Post
-            </a>
-            <button
-              type="button"
-              class="btn btn-secondary btn-confession-cta"
-              onclick="document.getElementById('confessionModal').style.display='flex';"
-              title="Post anonymous confession"
-            >
-              🎭 Confess
-            </button>
-          </div>
-        {% endif %}
+        
+        <a href="{{ url_for('auth.logout') }}" class="text-xs text-slate-400 hover:text-rose-400 transition ml-2">
+          Logout
+        </a>
       </div>
+
     </div>
-  </section>
+  </header>
 
-  <!-- Feed Post Stream -->
-  <section class="feed-stream">
-    {% if posts and posts|length > 0 %}
-      {% for post in posts %}
-        {% if post.post_type == 'confession' or post.is_anonymous %}
-          <!-- ==================== ANONYMOUS CONFESSION CARD ==================== -->
-          <article class="post-card confession-card" id="post-card-{{ post.id }}">
-            <div class="post-author-row confession-header">
-              <div class="confession-avatar">
-                🎭
-              </div>
-              <div class="author-info-col">
-                <div class="author-name-line">
-                  <span class="confession-author-title">Anonymous Student</span>
-                  <span class="verified-tag-badge">Campus Verified</span>
-                  <span class="category-tag-badge confession-badge">Confession</span>
-                </div>
-                <time class="post-timestamp" datetime="{{ post.created_at.isoformat() }}">
-                  {{ post.created_at.strftime('%b %d, %I:%M %p') }}
-                </time>
-              </div>
+  <!-- Main Feed Body -->
+  <main class="max-w-3xl mx-auto px-4 py-6 space-y-6">
 
-              {% if current_user.is_authenticated and (current_user.id == post.user_id or current_user.is_admin) %}
-                <div class="post-header-menu">
-                  <form
-                    method="POST"
-                    action="{{ url_for('feed.delete_post', post_id=post.id) }}"
-                    onsubmit="return confirm('Delete this anonymous confession?');"
-                  >
-                    <button type="submit" class="btn-delete-post" title="Delete confession" aria-label="Delete confession">
-                      &times;
-                    </button>
-                  </form>
-                </div>
-              {% endif %}
+    <!-- Flash Notifications -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="space-y-2">
+          {% for category, message in messages %}
+            <div class="p-4 rounded-xl border text-sm font-medium flex items-center justify-between
+              {% if category == 'error' %} bg-rose-500/10 border-rose-500/30 text-rose-300
+              {% elif category == 'warning' %} bg-amber-500/10 border-amber-500/30 text-amber-300
+              {% else %} bg-indigo-500/10 border-indigo-500/30 text-indigo-300 {% endif %}">
+              <span>{{ message }}</span>
             </div>
-
-            <!-- Confession Text Body -->
-            <div class="confession-body">
-              <blockquote class="confession-text">
-                "{{ post.caption }}"
-              </blockquote>
-            </div>
-
-            <!-- Voting & Interaction Bar -->
-            <div class="post-footer-bar">
-              {% set user_vote = user_votes_map.get(post.id, 0) %}
-              <div class="voting-control-pill" data-post-id="{{ post.id }}">
-                <button
-                  type="button"
-                  class="vote-btn btn-upvote {% if user_vote == 1 %}active{% endif %}"
-                  onclick="handleVote({{ post.id }}, 1)"
-                  aria-label="Upvote confession"
-                  title="Upvote"
-                >
-                  ▲
-                </button>
-                <span class="vote-net-count" id="vote-score-{{ post.id }}">
-                  {{ post.score }}
-                </span>
-                <button
-                  type="button"
-                  class="vote-btn btn-downvote {% if user_vote == -1 %}active{% endif %}"
-                  onclick="handleVote({{ post.id }}, -1)"
-                  aria-label="Downvote confession"
-                  title="Downvote"
-                >
-                  ▼
-                </button>
-              </div>
-
-              <button
-                type="button"
-                class="btn-share-post"
-                onclick="copyPostLink('{{ url_for('feed.index', _external=True) }}#post-card-{{ post.id }}', this)"
-              >
-                Share
-              </button>
-            </div>
-          </article>
-
-        {% elif post.post_type == 'poll' or post.poll_options|length > 0 %}
-          <!-- ==================== CAMPUS POLL CARD ==================== -->
-          <article class="post-card poll-card" id="post-card-{{ post.id }}">
-            <div class="post-author-row">
-              <a
-                href="{{ url_for('profile.view_profile', username=post.author.username) }}"
-                class="author-avatar-link"
-              >
-                {% if post.author.avatar_url and post.author.avatar_url != 'default_avatar.png' %}
-                  <img
-                    src="{{ url_for('static', filename='uploads/' + post.author.avatar_url) }}"
-                    alt="@{{ post.author.username }}"
-                    class="author-avatar-thumb"
-                    onerror="this.src='{{ url_for('static', filename='uploads/avatars/default_avatar.png') }}';"
-                  >
-                {% else %}
-                  <div class="author-avatar-fallback">
-                    {{ post.author.username[:2]|upper }}
-                  </div>
-                {% endif %}
-              </a>
-
-              <div class="author-info-col">
-                <div class="author-name-line">
-                  <a
-                    href="{{ url_for('profile.view_profile', username=post.author.username) }}"
-                    class="author-username"
-                  >
-                    @{{ post.author.username }}
-                  </a>
-                  <span class="student-badge">ID: {{ post.author.student_id }}</span>
-                  <span class="category-tag-badge poll-badge">Campus Poll</span>
-                </div>
-                <time class="post-timestamp" datetime="{{ post.created_at.isoformat() }}">
-                  {{ post.created_at.strftime('%b %d, %I:%M %p') }}
-                </time>
-              </div>
-
-              {% if current_user.is_authenticated and (current_user.id == post.user_id or current_user.is_admin) %}
-                <div class="post-header-menu">
-                  <form
-                    method="POST"
-                    action="{{ url_for('feed.delete_post', post_id=post.id) }}"
-                    onsubmit="return confirm('Delete this campus poll?');"
-                  >
-                    <button type="submit" class="btn-delete-post" title="Delete poll" aria-label="Delete poll">
-                      &times;
-                    </button>
-                  </form>
-                </div>
-              {% endif %}
-            </div>
-
-            <!-- Poll Question -->
-            <h2 class="post-title-text poll-question-title">{{ post.caption }}</h2>
-
-            <!-- Poll Options Widget Container -->
-            {% set user_poll_choice = user_poll_votes_map.get(post.id) %}
-            {% set total_votes = namespace(value=0) %}
-            {% for opt in post.poll_options %}
-              {% set total_votes.value = total_votes.value + opt.vote_count %}
-            {% endfor %}
-
-            <div class="poll-widget-container" id="poll-widget-{{ post.id }}" data-post-id="{{ post.id }}">
-              <div class="poll-options-list">
-                {% for opt in post.poll_options %}
-                  {% set is_selected = (user_poll_choice == opt.id) %}
-                  {% set pct = opt.percentage(total_votes.value) %}
-                  <div
-                    class="poll-option-row {% if is_selected %}selected-choice{% endif %} {% if user_poll_choice %}voted-mode{% endif %}"
-                    id="poll-opt-row-{{ opt.id }}"
-                    onclick="handlePollVote({{ opt.id }}, {{ post.id }})"
-                  >
-                    <!-- Background Percentage Fill Bar -->
-                    <div
-                      class="poll-fill-bar"
-                      style="width: {{ pct if user_poll_choice else 0 }}%;"
-                      id="poll-bar-{{ opt.id }}"
-                    ></div>
-
-                    <!-- Option Content Overlay -->
-                    <div class="poll-option-content">
-                      <span class="poll-radio-indicator">
-                        {% if is_selected %}●{% else %}○{% endif %}
-                      </span>
-                      <span class="poll-option-label">{{ opt.option_text }}</span>
-                      <span class="poll-option-stats" id="poll-stat-{{ opt.id }}">
-                        {% if user_poll_choice %}
-                          {{ pct }}% ({{ opt.vote_count }})
-                        {% endif %}
-                      </span>
-                    </div>
-                  </div>
-                {% endfor %}
-              </div>
-
-              <div class="poll-summary-footer">
-                <span id="poll-total-count-{{ post.id }}">{{ total_votes.value }} total votes</span>
-                <span>· Single vote per student</span>
-              </div>
-            </div>
-
-            <!-- Footer bar for sharing/karma -->
-            <div class="post-footer-bar">
-              {% set user_vote = user_votes_map.get(post.id, 0) %}
-              <div class="voting-control-pill" data-post-id="{{ post.id }}">
-                <button
-                  type="button"
-                  class="vote-btn btn-upvote {% if user_vote == 1 %}active{% endif %}"
-                  onclick="handleVote({{ post.id }}, 1)"
-                  aria-label="Upvote poll"
-                >
-                  ▲
-                </button>
-                <span class="vote-net-count" id="vote-score-{{ post.id }}">
-                  {{ post.score }}
-                </span>
-                <button
-                  type="button"
-                  class="vote-btn btn-downvote {% if user_vote == -1 %}active{% endif %}"
-                  onclick="handleVote({{ post.id }}, -1)"
-                  aria-label="Downvote poll"
-                >
-                  ▼
-                </button>
-              </div>
-
-              <button
-                type="button"
-                class="btn-share-post"
-                onclick="copyPostLink('{{ url_for('feed.index', _external=True) }}#post-card-{{ post.id }}', this)"
-              >
-                Share
-              </button>
-            </div>
-          </article>
-
-        {% else %}
-          <!-- ==================== STANDARD POST CARD (MEME / FIT CHECK) ==================== -->
-          <article class="post-card" id="post-card-{{ post.id }}">
-            <div class="post-author-row">
-              <a
-                href="{{ url_for('profile.view_profile', username=post.author.username) }}"
-                class="author-avatar-link"
-              >
-                {% if post.author.avatar_url and post.author.avatar_url != 'default_avatar.png' %}
-                  <img
-                    src="{{ url_for('static', filename='uploads/' + post.author.avatar_url) }}"
-                    alt="@{{ post.author.username }}"
-                    class="author-avatar-thumb"
-                    onerror="this.src='{{ url_for('static', filename='uploads/avatars/default_avatar.png') }}';"
-                  >
-                {% else %}
-                  <div class="author-avatar-fallback">
-                    {{ post.author.username[:2]|upper }}
-                  </div>
-                {% endif %}
-              </a>
-
-              <div class="author-info-col">
-                <div class="author-name-line">
-                  <a
-                    href="{{ url_for('profile.view_profile', username=post.author.username) }}"
-                    class="author-username"
-                  >
-                    @{{ post.author.username }}
-                  </a>
-                  <span class="student-badge">ID: {{ post.author.student_id }}</span>
-                  <span class="category-tag-badge">{{ post.category|replace('_', ' ')|title }}</span>
-                </div>
-                <time class="post-timestamp" datetime="{{ post.created_at.isoformat() }}">
-                  {{ post.created_at.strftime('%b %d, %I:%M %p') }}
-                </time>
-              </div>
-
-              {% if current_user.is_authenticated and (current_user.id == post.user_id or current_user.is_admin) %}
-                <div class="post-header-menu">
-                  <form
-                    method="POST"
-                    action="{{ url_for('feed.delete_post', post_id=post.id) }}"
-                    onsubmit="return confirm('Delete this campus post permanently?');"
-                  >
-                    <button type="submit" class="btn-delete-post" title="Delete post" aria-label="Delete post">
-                      &times;
-                    </button>
-                  </form>
-                </div>
-              {% endif %}
-            </div>
-
-            {% if post.caption %}
-              <h2 class="post-title-text">{{ post.caption }}</h2>
-            {% endif %}
-
-            {% if post.media_url %}
-              <div class="post-media-container">
-                <img
-                  src="{{ url_for('static', filename='uploads/' + post.media_url) }}"
-                  alt="{{ post.caption|default('Campus post image') }}"
-                  class="post-media-img"
-                  loading="lazy"
-                >
-              </div>
-            {% endif %}
-
-            <!-- Mobile-First Voting & Interaction Bar -->
-            <div class="post-footer-bar">
-              {% set user_vote = user_votes_map.get(post.id, 0) %}
-              <div class="voting-control-pill" data-post-id="{{ post.id }}">
-                <button
-                  type="button"
-                  class="vote-btn btn-upvote {% if user_vote == 1 %}active{% endif %}"
-                  onclick="handleVote({{ post.id }}, 1)"
-                  aria-label="Upvote post"
-                  title="Upvote"
-                >
-                  ▲
-                </button>
-                <span class="vote-net-count" id="vote-score-{{ post.id }}">
-                  {{ post.score }}
-                </span>
-                <button
-                  type="button"
-                  class="vote-btn btn-downvote {% if user_vote == -1 %}active{% endif %}"
-                  onclick="handleVote({{ post.id }}, -1)"
-                  aria-label="Downvote post"
-                  title="Downvote"
-                >
-                  ▼
-                </button>
-              </div>
-
-              <button
-                type="button"
-                class="btn-share-post"
-                onclick="copyPostLink('{{ url_for('feed.index', _external=True) }}#post-card-{{ post.id }}', this)"
-              >
-                Share
-              </button>
-            </div>
-          </article>
-        {% endif %}
-      {% endfor %}
-
-      <!-- Pagination Footer -->
-      {% if pagination and pagination.pages > 1 %}
-        <nav class="feed-pagination" aria-label="Feed pagination">
-          {% if pagination.has_prev %}
-            <a
-              href="{{ url_for('feed.index', category=active_category, sort=active_sort, page=pagination.prev_num) }}"
-              class="btn btn-secondary"
-            >
-              &larr; Previous
-            </a>
-          {% endif %}
-          <span class="page-indicator">
-            Page {{ pagination.page }} of {{ pagination.pages }}
-          </span>
-          {% if pagination.has_next %}
-            <a
-              href="{{ url_for('feed.index', category=active_category, sort=active_sort, page=pagination.next_num) }}"
-              class="btn btn-secondary"
-            >
-              Next &rarr;
-            </a>
-          {% endif %}
-        </nav>
+          {% endfor %}
+        </div>
       {% endif %}
-    {% else %}
-      <div class="empty-state-card">
-        <p class="empty-title">No Campus Posts in this Category</p>
-        <p class="empty-subtitle">Be the first verified student to post a meme, confession, or poll.</p>
-        {% if current_user.is_authenticated %}
-          <div style="margin-top: 12px; display: flex; gap: 8px; justify-content: center;">
-            <a href="{{ url_for('feed.create_post') }}" class="btn btn-primary">
-              Create First Post
-            </a>
-            <button
-              type="button"
-              class="btn btn-secondary"
-              onclick="document.getElementById('confessionModal').style.display='flex';"
-            >
-              Post Confession
+    {% endwith %}
+
+    <!-- Create Post Card -->
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 shadow-xl">
+      <div class="flex items-start space-x-3">
+        <div class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-indigo-400 text-sm flex-shrink-0">
+          {{ current_user.full_name[:2].upper() if current_user.full_name else 'ME' }}
+        </div>
+        <form action="{{ url_for('feed.create_post') }}" method="POST" class="flex-1 space-y-3">
+          <textarea 
+            name="content" 
+            rows="3" 
+            placeholder="Share an update, announcement, or meme with campus..." 
+            class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none"
+            required></textarea>
+
+          <div class="flex items-center justify-between pt-1">
+            <div class="flex space-x-2 text-slate-400 text-xs">
+              <span class="bg-slate-900 border border-slate-800 px-2.5 py-1 rounded-lg">
+                Faculty: {{ current_user.faculty or 'General' }}
+              </span>
+            </div>
+
+            <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs rounded-xl shadow-lg shadow-indigo-600/30 transition">
+              Post Update
             </button>
           </div>
-        {% endif %}
+        </form>
       </div>
-    {% endif %}
-  </section>
+    </div>
+
+    <!-- Feed Stream -->
+    <div class="space-y-4">
+      {% if feed_items %}
+        {% for item in feed_items %}
+          <div class="bg-slate-950 border border-slate-800 rounded-2xl p-5 space-y-3 shadow-lg">
+            
+            <!-- Author Header -->
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-slate-300 text-xs">
+                  {{ item.author[:2].upper() }}
+                </div>
+                <div>
+                  <div class="flex items-center space-x-2">
+                    <h3 class="font-semibold text-sm text-slate-100">{{ item.author }}</h3>
+                    {% if item.is_official %}
+                      <span class="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 text-[10px] font-bold border border-indigo-500/30">
+                        OFFICIAL
+                      </span>
+                    {% endif %}
+                  </div>
+                  <p class="text-xs text-slate-500">{{ item.timestamp }}</p>
+                </div>
+              </div>
+
+              {% if item.category %}
+                <span class="text-xs text-slate-400 bg-slate-900 border border-slate-800 px-2.5 py-1 rounded-lg">
+                  {{ item.category }}
+                </span>
+              {% endif %}
+            </div>
+
+            <!-- Content -->
+            <p class="text-slate-300 text-sm leading-relaxed">
+              {{ item.content }}
+            </p>
+
+            <!-- Interaction Bar -->
+            <div class="pt-2 border-t border-slate-900 flex items-center space-x-6 text-xs text-slate-400">
+              <button class="hover:text-indigo-400 flex items-center space-x-1.5 transition">
+                <span>Like</span>
+              </button>
+              <button class="hover:text-indigo-400 flex items-center space-x-1.5 transition">
+                <span>Comment</span>
+              </button>
+            </div>
+
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="bg-slate-950 border border-slate-800 rounded-2xl p-8 text-center space-y-2">
+          <p class="text-slate-400 text-sm">No updates posted on the feed yet.</p>
+          <p class="text-xs text-slate-600">Be the first student to post an update above!</p>
+        </div>
+      {% endif %}
+    </div>
+
+  </main>
 </div>
-
-<!-- ==================== ANONYMOUS CONFESSION MODAL ==================== -->
-{% if current_user.is_authenticated %}
-  <div id="confessionModal" class="modal-backdrop" style="display: none;">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h3 class="modal-title">🎭 Anonymous Campus Confession</h3>
-        <button
-          type="button"
-          class="modal-close-btn"
-          onclick="document.getElementById('confessionModal').style.display='none';"
-        >
-          &times;
-        </button>
-      </div>
-
-      <div class="confession-privacy-disclaimer">
-        <span>🔒 Zero author identity or student ID is linked or exposed publicly.</span>
-      </div>
-
-      <form method="POST" action="{{ url_for('feed.create_confession') }}" class="modal-form">
-        <div class="form-group">
-          <label for="confessionContent" class="form-label">What's on your mind?</label>
-          <textarea
-            id="confessionContent"
-            name="content"
-            rows="4"
-            maxlength="500"
-            class="form-textarea"
-            placeholder="Share campus thoughts, late night dorm confessions, or professor quotes anonymously..."
-            required
-          ></textarea>
-          <span class="field-hint">Max 500 characters. Community moderation rules apply.</span>
-        </div>
-
-        <div class="modal-actions">
-          <button
-            type="button"
-            class="btn btn-secondary"
-            onclick="document.getElementById('confessionModal').style.display='none';"
-          >
-            Cancel
-          </button>
-          <button type="submit" class="btn btn-primary">
-            Publish Anonymously
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Upload 30s Micro-Vlog Modal -->
-  <div
-    id="uploadVlogModal"
-    class="modal-overlay"
-    style="display: none;"
-    onclick="if(event.target === this) this.style.display='none';"
-  >
-    <div class="modal-dialog-card">
-      <div class="modal-header-row">
-        <h3 class="modal-dialog-title">📹 New 30s Campus Vlog</h3>
-        <button
-          type="button"
-          class="btn-close-modal"
-          onclick="document.getElementById('uploadVlogModal').style.display='none';"
-          aria-label="Close modal"
-        >
-          &times;
-        </button>
-      </div>
-
-      <form
-        method="POST"
-        action="{{ url_for('feed.upload_vlog') }}"
-        enctype="multipart/form-data"
-        class="modal-form-body"
-      >
-        <div class="form-group">
-          <label for="vlogVideoFile" class="form-label">
-            Video File (Max 30s):
-          </label>
-          <input
-            type="file"
-            id="vlogVideoFile"
-            name="video"
-            class="form-control"
-            accept="video/mp4,video/webm,video/quicktime"
-            required
-          >
-          <small class="form-help-text">Direct campus micro-story format (MP4/WebM, &le; 30.0 seconds).</small>
-        </div>
-
-        <div class="form-group">
-          <label for="vlogDurationInput" class="form-label">
-            Duration in seconds:
-          </label>
-          <input
-            type="number"
-            id="vlogDurationInput"
-            name="duration"
-            class="form-control"
-            min="1"
-            max="30"
-            step="0.5"
-            value="15"
-            required
-          >
-        </div>
-
-        <div class="form-group">
-          <label for="vlogCaptionInput" class="form-label">
-            Caption:
-          </label>
-          <textarea
-            id="vlogCaptionInput"
-            name="caption"
-            class="form-control"
-            rows="2"
-            maxlength="280"
-            placeholder="What's happening on campus right now?"
-          ></textarea>
-        </div>
-
-        <div class="modal-actions-row">
-          <button
-            type="button"
-            class="btn btn-secondary"
-            onclick="document.getElementById('uploadVlogModal').style.display='none';"
-          >
-            Cancel
-          </button>
-          <button type="submit" class="btn btn-primary">
-            Upload Story
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-{% endif %}
-
-<!-- Vlog Story Viewer Modal -->
-<div
-  id="vlogViewerModal"
-  class="modal-overlay vlog-viewer-overlay"
-  style="display: none;"
-  onclick="if(event.target === this) closeVlogViewer();"
->
-  <div class="vlog-viewer-card">
-    <div class="vlog-viewer-top-bar">
-      <div class="vlog-viewer-author">
-        <span class="vlog-author-badge" id="vlogViewerAuthor">@student</span>
-        <span class="vlog-duration-badge" id="vlogViewerDuration">15s story</span>
-      </div>
-      <button
-        type="button"
-        class="vlog-close-btn"
-        onclick="closeVlogViewer()"
-        aria-label="Close story"
-      >
-        &times;
-      </button>
-    </div>
-
-    <!-- Progress indicator bar -->
-    <div class="vlog-progress-track">
-      <div class="vlog-progress-fill" id="vlogProgressFill"></div>
-    </div>
-
-    <!-- Video Element Container -->
-    <div class="vlog-video-frame">
-      <video
-        id="vlogPlayerVideo"
-        class="vlog-player-element"
-        controls
-        autoplay
-        playsinline
-      ></video>
-    </div>
-
-    <!-- Story Footer Bar: Caption, Likes, Views -->
-    <div class="vlog-viewer-footer">
-      <p class="vlog-viewer-caption" id="vlogViewerCaption"></p>
-      <div class="vlog-viewer-actions">
-        <span class="vlog-stat-item" id="vlogViewerStats">👁️ 0 views · ❤️ 0 likes</span>
-        {% if current_user.is_authenticated %}
-          <button
-            type="button"
-            class="btn-like-vlog"
-            id="btnLikeVlog"
-            onclick="handleLikeCurrentVlog()"
-          >
-            ❤️ Like Story
-          </button>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-</div>
-{% endblock %}
-
-{% block extra_scripts %}
-<script>
-  /**
-   * Optimistic AJAX Voting Engine for Posts & Confessions
-   */
-  async function handleVote(postId, requestedVote) {
-    {% if not current_user.is_authenticated %}
-      window.location.href = "{{ url_for('auth.login') }}";
-      return;
-    {% endif %}
-
-    const pill = document.querySelector(`.voting-control-pill[data-post-id="${postId}"]`);
-    if (!pill) return;
-
-    const upBtn = pill.querySelector('.btn-upvote');
-    const downBtn = pill.querySelector('.btn-downvote');
-    const scoreSpan = document.getElementById(`vote-score-${postId}`);
-
-    const wasUpvoted = upBtn.classList.contains('active');
-    const wasDownvoted = downBtn.classList.contains('active');
-    let currentScore = parseInt(scoreSpan.textContent, 10) || 0;
-
-    let targetVote = requestedVote;
-    if (requestedVote === 1 && wasUpvoted) targetVote = 0;
-    if (requestedVote === -1 && wasDownvoted) targetVote = 0;
-
-    if (targetVote === 1) {
-      upBtn.classList.add('active');
-      downBtn.classList.remove('active');
-      scoreSpan.textContent = wasDownvoted ? currentScore + 2 : currentScore + 1;
-    } else if (targetVote === -1) {
-      downBtn.classList.add('active');
-      upBtn.classList.remove('active');
-      scoreSpan.textContent = wasUpvoted ? currentScore - 2 : currentScore - 1;
-    } else {
-      upBtn.classList.remove('active');
-      downBtn.classList.remove('active');
-      scoreSpan.textContent = wasUpvoted ? currentScore - 1 : (wasDownvoted ? currentScore + 1 : currentScore);
-    }
-
-    try {
-      const response = await fetch(`/feed/post/${postId}/vote`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: JSON.stringify({ vote_type: requestedVote })
-      });
-
-      if (!response.ok) throw new Error('Vote request failed');
-
-      const data = await response.json();
-      if (data.status === 'success') {
-        scoreSpan.textContent = data.net_votes;
-        if (data.user_vote === 1) {
-          upBtn.classList.add('active');
-          downBtn.classList.remove('active');
-        } else if (data.user_vote === -1) {
-          downBtn.classList.add('active');
-          upBtn.classList.remove('active');
-        } else {
-          upBtn.classList.remove('active');
-          downBtn.classList.remove('active');
-        }
-      }
-    } catch (err) {
-      console.error('Voting error', err);
-      scoreSpan.textContent = currentScore;
-      if (wasUpvoted) upBtn.classList.add('active'); else upBtn.classList.remove('active');
-      if (wasDownvoted) downBtn.classList.add('active'); else downBtn.classList.remove('active');
-    }
-  }
-
-  /**
-   * AJAX Poll Voting Engine
-   */
-  async function handlePollVote(optionId, postId) {
-    {% if not current_user.is_authenticated %}
-      window.location.href = "{{ url_for('auth.login') }}";
-      return;
-    {% endif %}
-
-    const container = document.getElementById(`poll-widget-${postId}`);
-    if (!container) return;
-
-    try {
-      const response = await fetch(`/feed/poll/${optionId}/vote`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest'
-        }
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        alert(data.message || 'Already voted or failed to record vote.');
-        return;
-      }
-
-      if (data.status === 'success' && data.options) {
-        // Re-render options dynamically with smooth animated growing percentages
-        data.options.forEach(opt => {
-          const row = document.getElementById(`poll-opt-row-${opt.id}`);
-          const bar = document.getElementById(`poll-bar-${opt.id}`);
-          const stat = document.getElementById(`poll-stat-${opt.id}`);
-
-          if (row && bar && stat) {
-            row.classList.add('voted-mode');
-            if (opt.id === data.user_voted_option_id) {
-              row.classList.add('selected-choice');
-              row.classList.add('animating-vote');
-              setTimeout(() => row.classList.remove('animating-vote'), 900);
-              const indicator = row.querySelector('.poll-radio-indicator');
-              if (indicator) indicator.textContent = '●';
-            } else {
-              row.classList.remove('selected-choice');
-              const indicator = row.querySelector('.poll-radio-indicator');
-              if (indicator) indicator.textContent = '○';
-            }
-            bar.style.width = `${opt.percentage}%`;
-            stat.textContent = `${opt.percentage}% (${opt.vote_count})`;
-          }
-        });
-
-        const totalSpan = document.getElementById(`poll-total-count-${postId}`);
-        if (totalSpan) {
-          totalSpan.textContent = `${data.total_votes} total votes`;
-        }
-      }
-    } catch (err) {
-      console.error('Poll voting error:', err);
-    }
-  }
-
-  function copyPostLink(url, btn) {
-    navigator.clipboard.writeText(url).then(() => {
-      const origText = btn.textContent;
-      btn.textContent = 'Copied!';
-      setTimeout(() => { btn.textContent = origText; }, 2000);
-    }).catch(() => {
-      prompt('Copy post URL:', url);
-    });
-  }
-
-  /**
-   * Micro-Vlogs Story Viewer Engine
-   */
-  let currentActiveVlogId = null;
-  let vlogProgressInterval = null;
-
-  function openVlogViewer(vlogId, videoSrc, username, caption, duration, views, likes) {
-    currentActiveVlogId = vlogId;
-    const modal = document.getElementById('vlogViewerModal');
-    const player = document.getElementById('vlogPlayerVideo');
-    const authorSpan = document.getElementById('vlogViewerAuthor');
-    const durationSpan = document.getElementById('vlogViewerDuration');
-    const captionP = document.getElementById('vlogViewerCaption');
-    const statsSpan = document.getElementById('vlogViewerStats');
-    const fill = document.getElementById('vlogProgressFill');
-
-    authorSpan.textContent = `@${username}`;
-    durationSpan.textContent = `${duration}s story`;
-    captionP.textContent = caption || 'No caption';
-    statsSpan.textContent = `👁️ ${views + 1} views · ❤️ ${likes} likes`;
-
-    player.src = videoSrc;
-    modal.style.display = 'flex';
-    player.play().catch(() => {});
-
-    // Track view asynchronously
-    fetch(`/feed/vlog/${vlogId}/view`, { method: 'POST' }).catch(() => {});
-
-    // Auto-progress bar tracking
-    if (fill) fill.style.width = '0%';
-    player.ontimeupdate = () => {
-      if (player.duration) {
-        const pct = (player.currentTime / player.duration) * 100;
-        if (fill) fill.style.width = `${pct}%`;
-      }
-    };
-    player.onended = () => {
-      closeVlogViewer();
-    };
-  }
-
-  function closeVlogViewer() {
-    const modal = document.getElementById('vlogViewerModal');
-    const player = document.getElementById('vlogPlayerVideo');
-    if (player) {
-      player.pause();
-      player.src = '';
-    }
-    if (modal) modal.style.display = 'none';
-    currentActiveVlogId = null;
-  }
-
-  async function handleLikeCurrentVlog() {
-    if (!currentActiveVlogId) return;
-    try {
-      const res = await fetch(`/feed/vlog/${currentActiveVlogId}/like`, { method: 'POST' });
-      if (res.ok) {
-        const data = await res.json();
-        const stats = document.getElementById('vlogViewerStats');
-        const btn = document.getElementById('btnLikeVlog');
-        if (btn) btn.textContent = '❤️ Liked!';
-      }
-    } catch (e) {
-      console.error('Failed to like vlog:', e);
-    }
-  }
-</script>
 {% endblock %}
