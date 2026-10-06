@@ -749,8 +749,8 @@ def inspect_report(report_id: int):
 def handle_moderation_action():
     """
     General moderation action handler:
-    Accepts payload: target_type ('post', 'vlog', 'user', 'confession', 'review'),
-                     target_id, action ('delete_content', 'suspend_7_days', 'permanent_ban', 'dismiss_report').
+    Accepts payload: target_type ('post', 'vlog', 'user', 'confession', 'review', 'aux_submission', 'message'),
+                     target_id, action ('delete_content', 'suspend_7_days', 'permanent_ban', 'dismiss_report', 'warn').
     Executes database modifications atomically and logs in ModLog.
     Returns JSON status: {"status": "success", "action_taken": action}.
     """
@@ -777,7 +777,7 @@ def handle_moderation_action():
     if action not in valid_actions:
         return jsonify({
             "status": "error",
-            "message": f"Invalid action. Allowed: delete_content, suspend_7_days, permanent_ban, dismiss_report"
+            "message": "Invalid action. Allowed: delete_content, suspend_7_days, permanent_ban, dismiss_report, warn"
         }), 400
 
     try:
@@ -804,309 +804,167 @@ def handle_moderation_action():
         target_entity = AuxSubmission.query.get(target_id)
         if target_entity:
             offending_user = target_entity.user
-    elif target_type == "user":
-        offending_user = User.query.get(target_id)
-        target_entity = offending_user
     elif target_type == "message":
         target_entity = Message.query.get(target_id)
         if target_entity:
             offending_user = target_entity.sender
-
-    # Execute Action
-    try:
-        # A. DISMISS REPORT
-        if action in ("dismiss_report", "dismiss"):
-            if report_id:
-                rep = Report.query.get(int(report_id))
-                if rep:
-                    rep.status = "dismissed"
-            else:
-                for rep in Report.query.filter_by(target_type=target_type, target_id=target_id, status="pending").all():
-                    rep.status = "dismissed"
-
-            log = ModLog(
-                admin_id=current_user.id,
-                action="dismiss_report",
-                target_type=target_type,
-                target_id=target_id,
-                reason_given=reason_note or "Dismissed by admin: report unfounded or resolved.",
-            )
-            db.session.add(log)
-
-        # B. DELETE CONTENT
-        elif action == "delete_content":
-            if target_entity and target_type != "user":
-                db.session.delete(target_entity)
-
-            # Mark matching pending reports as actioned
-            for rep in Report.query.filter_by(target_type=target_type, target_id=target_id, status="pending").all():
-                rep.status = "actioned"
-
-            log = ModLog(
-                admin_id=current_user.id,
-                action="delete_content",
-                target_type=target_type,
-                target_id=target_id,
-                reason_given=reason_note or f"Content permanently deleted following safety review.",
-            )
-            db.session.add(log)
-
-        # C. SUSPEND 7 DAYS
-        elif action in ("suspend_7_days", "suspend_user", "suspend"):
-            if not offending_user:
-                return jsonify({"status": "error", "message": "Could not locate student author to suspend."}), 404
-
-            offending_user.is_suspended = True
-            offending_user.suspension_until = datetime.utcnow() + timedelta(days=7)
-
-            for rep in Report.query.filter_by(target_type=target_type, target_id=target_id, status="pending").all():
-                rep.status = "actioned"
-
-            log = ModLog(
-                admin_id=current_user.id,
-                action="suspend_user",
-                target_type="user",
-                target_id=offending_user.id,
-                reason_given=reason_note or "Suspended for 7 days due to community policy breach.",
-            )
-            db.session.add(log)
-
-        # D. PERMANENT BAN
-        elif action in ("permanent_ban", "ban_user", "ban"):
-            if not offending_user:
-                return jsonify({"status": "error", "message": "Could not locate student author to ban."}), 404
-
-            offending_user.is_banned = True
-            offending_user.is_active = False
-
-            for rep in Report.query.filter_by(target_type=target_type, target_id=target_id, status="pending").all():
-                rep.status = "actioned"
-
-            log = ModLog(
-                admin_id=current_user.id,
-                action="ban_user",
-                target_type="user",
-                target_id=offending_user.id,
-                reason_given=reason_note or "Permanent account ban.",
-            )
-            db.session.add(log)
-
-        db.session.commit()
-    except Exception as exc:
-        db.session.rollback()
-        return jsonify({"status": "error", "message": f"Database transaction failed: {str(exc)}"}), 500
-
-    return jsonify({
-        "status": "success",
-        "action_taken": action,
-        "message": f"Action '{action}' executed successfully.",
-    }), 200
-
-
-# Compatibility endpoint for reports/<id>/action
-@admin_bp.route("/reports/<int:report_id>/action", methods=["POST"])
-@admin_required
-def execute_report_action(report_id: int):
-    """Executes moderation action targeting a specific report ID."""
-    report = Report.query.get_or_404(report_id)
-    data = request.get_json(silent=True) if request.is_json else request.form
-
-    action = (data.get("action") or "").strip().lower()
-    reason_note = (data.get("reason_note") or data.get("reason") or "").strip()
-
-    # Route through handle_moderation_action logic
-    normalized_action = action
-    if action == "suspend_user":
-        normalized_action = "suspend_7_days"
-    elif action == "ban_user":
-        normalized_action = "permanent_ban"
-    elif action == "dismiss":
-        normalized_action = "dismiss_report"
-
-    # Forward to core handler
-    payload = {
-        "target_type": report.target_type,
-        "target_id": report.target_id,
-        "action": normalized_action,
-        "reason_note": reason_note,
-        "report_id": report.id,
-    }
-
-    # Execute inline
-    return handle_moderation_action_inline(payload)
-
-
-def handle_moderation_action_inline(payload: dict):
-    target_type = payload["target_type"]
-    target_id = payload["target_id"]
-    action = payload["action"]
-    reason_note = payload["reason_note"]
-    report_id = payload.get("report_id")
-
-    target_entity = None
-    offending_user = None
-
-    if target_type in ("post", "confession"):
-        target_entity = Post.query.get(target_id)
-        if target_entity:
-            offending_user = target_entity.author
-    elif target_type == "vlog":
-        target_entity = Vlog.query.get(target_id)
-        if target_entity:
-            offending_user = target_entity.author
-    elif target_type == "review":
-        target_entity = CourseReview.query.get(target_id)
-        if target_entity:
-            offending_user = target_entity.author
-    elif target_type == "aux_submission":
-        target_entity = AuxSubmission.query.get(target_id)
-        if target_entity:
-            offending_user = target_entity.user
     elif target_type == "user":
         offending_user = User.query.get(target_id)
         target_entity = offending_user
 
-    if action in ("dismiss_report", "dismiss"):
-        if report_id:
-            rep = Report.query.get(int(report_id))
-            if rep:
-                rep.status = "dismissed"
-        log = ModLog(admin_id=current_user.id, action="dismiss_report", target_type=target_type, target_id=target_id, reason_given=reason_note or "Dismissed by admin.")
-        db.session.add(log)
-    elif action == "delete_content":
-        if target_entity and target_type != "user":
+    # Prevent super-admin from accidentally acting against themselves
+    if offending_user and offending_user.id == current_user.id:
+        msg = "You cannot perform moderation actions against your own admin account."
+        if wants_json():
+            return jsonify({"status": "error", "message": msg}), 400
+        flash(msg, "danger")
+        return redirect(url_for("admin.dashboard"))
+
+    try:
+        # 1. Action: Delete Content
+        if action == "delete_content":
+            if not target_entity or target_type == "user":
+                return jsonify({
+                    "status": "error",
+                    "message": "Target content not found or cannot delete user via content action."
+                }), 404
+
+            # Safely remove physical files attached to target media
+            media_path_attr = getattr(target_entity, "media_url", None) or getattr(target_entity, "video_url", None)
+            if media_path_attr:
+                rel_path = media_path_attr.lstrip("/")
+                abs_path = os.path.join(current_app.root_path, rel_path)
+                if os.path.exists(abs_path):
+                    try:
+                        os.remove(abs_path)
+                    except OSError:
+                        pass
+
             db.session.delete(target_entity)
-        if report_id:
-            rep = Report.query.get(int(report_id))
-            if rep:
-                rep.status = "actioned"
-        log = ModLog(admin_id=current_user.id, action="delete_content", target_type=target_type, target_id=target_id, reason_given=reason_note or "Deleted by admin.")
-        db.session.add(log)
-    elif action in ("suspend_7_days", "suspend_user", "suspend"):
-        if offending_user:
+
+        # 2. Action: Suspend User (7 Days)
+        elif action in ("suspend_7_days", "suspend_user"):
+            if not offending_user:
+                return jsonify({"status": "error", "message": "Target user not found."}), 404
+
             offending_user.is_suspended = True
-            offending_user.suspension_until = datetime.utcnow() + timedelta(days=7)
-        if report_id:
-            rep = Report.query.get(int(report_id))
-            if rep:
-                rep.status = "actioned"
-        log = ModLog(admin_id=current_user.id, action="suspend_user", target_type="user", target_id=offending_user.id if offending_user else target_id, reason_given=reason_note or "Suspended 7 days.")
-        db.session.add(log)
-    elif action in ("permanent_ban", "ban_user", "ban"):
-        if offending_user:
+            offending_user.suspended_until = datetime.utcnow() + timedelta(days=7)
+
+        # 3. Action: Permanent Ban
+        elif action in ("permanent_ban", "ban_user"):
+            if not offending_user:
+                return jsonify({"status": "error", "message": "Target user not found."}), 404
+
             offending_user.is_banned = True
             offending_user.is_active = False
+
+        # 4. Action: Dismiss / Warn
+        elif action in ("dismiss_report", "dismiss", "warn"):
+            if target_entity and hasattr(target_entity, "is_flagged"):
+                target_entity.is_flagged = False
+
+        # Resolve linked report status
+        linked_reports = []
         if report_id:
-            rep = Report.query.get(int(report_id))
+            rep = Report.query.get(report_id)
             if rep:
-                rep.status = "actioned"
-        log = ModLog(admin_id=current_user.id, action="ban_user", target_type="user", target_id=offending_user.id if offending_user else target_id, reason_given=reason_note or "Permanent account ban.")
-        db.session.add(log)
+                linked_reports.append(rep)
+        else:
+            linked_reports = Report.query.filter_by(
+                target_type=target_type, target_id=target_id, status="pending"
+            ).all()
 
-    db.session.commit()
-    return jsonify({"status": "success", "action_taken": action}), 200
+        new_status = "dismissed" if action in ("dismiss_report", "dismiss") else "actioned"
+        for rep in linked_reports:
+            rep.status = new_status
+            rep.action_taken = action
+            rep.resolved_at = datetime.utcnow()
+            rep.resolved_by_id = current_user.id
+
+        # Record audit log
+        log_entry = ModLog(
+            admin_id=current_user.id,
+            action=action,
+            target_type=target_type,
+            target_id=target_id,
+            target_user_id=offending_user.id if offending_user else None,
+            reason=reason_note or f"Action {action} performed via admin center.",
+            timestamp=datetime.utcnow(),
+        )
+        db.session.add(log_entry)
+        db.session.commit()
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            "status": "error",
+            "message": f"An error occurred while executing moderation action: {str(e)}"
+        }), 500
+
+    msg = f"Successfully executed action '{action}' on {target_type} #{target_id}."
+    if wants_json():
+        return jsonify({"status": "success", "message": msg, "action_taken": action}), 200
+
+    flash(msg, "success")
+    return redirect(url_for("admin.dashboard"))
 
 
 # =====================================================================
-# DIRECT USER ACCOUNT SANCTIONS
+# 4. DIRECT USER STATUS MODERATION (POST /admin/users/<id>/toggle-status)
 # =====================================================================
-@admin_bp.route("/users/<int:user_id>/suspend", methods=["POST"])
+@admin_bp.route("/users/<int:user_id>/toggle-status", methods=["POST"])
 @admin_required
-def direct_suspend_user(user_id: int):
-    """Directly suspend a user account with custom day duration."""
+def toggle_user_status(user_id: int):
+    """
+    Direct endpoint to ban, unban, suspend, or reactivate student accounts.
+    """
     user = User.query.get_or_404(user_id)
-    if user.id == current_user.id:
-        return jsonify({"status": "error", "message": "You cannot suspend your own admin account."}), 400
-
     data = request.get_json(silent=True) if request.is_json else request.form
-    days = 7
+    action_type = (data.get("action") or "").strip().lower()
+
+    if user.id == current_user.id:
+        msg = "You cannot modify your own administrative status."
+        if wants_json():
+            return jsonify({"status": "error", "message": msg}), 400
+        flash(msg, "danger")
+        return redirect(url_for("admin.dashboard"))
+
     try:
-        if data.get("days"):
-            days = max(1, int(data.get("days")))
-    except (ValueError, TypeError):
-        days = 7
+        if action_type == "ban":
+            user.is_banned = True
+            user.is_active = False
+        elif action_type == "unban":
+            user.is_banned = False
+            user.is_active = True
+        elif action_type == "suspend":
+            days = int(data.get("days", 7))
+            user.is_suspended = True
+            user.suspended_until = datetime.utcnow() + timedelta(days=days)
+        elif action_type == "unsuspend":
+            user.is_suspended = False
+            user.suspended_until = None
+        else:
+            return jsonify({"status": "error", "message": "Invalid status toggle action."}), 400
 
-    reason = (data.get("reason") or "Direct administrative suspension").strip()
-    user.is_suspended = True
-    user.suspension_until = datetime.utcnow() + timedelta(days=days)
+        log_entry = ModLog(
+            admin_id=current_user.id,
+            action=f"user_{action_type}",
+            target_type="user",
+            target_id=user.id,
+            target_user_id=user.id,
+            reason=data.get("reason", f"Admin status update: {action_type}"),
+            timestamp=datetime.utcnow(),
+        )
+        db.session.add(log_entry)
+        db.session.commit()
 
-    log_entry = ModLog(
-        admin_id=current_user.id,
-        action="suspend_user",
-        target_type="user",
-        target_id=user.id,
-        reason_given=f"Direct suspension ({days}d): {reason}",
-    )
-    db.session.add(log_entry)
-    db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
 
-    return jsonify({"status": "success", "message": f"User @{user.username} suspended for {days} days.", "user_id": user.id}), 200
+    msg = f"User @{user.username} account status updated: {action_type}."
+    if wants_json():
+        return jsonify({"status": "success", "message": msg}), 200
 
-
-@admin_bp.route("/users/<int:user_id>/unsuspend", methods=["POST"])
-@admin_required
-def direct_unsuspend_user(user_id: int):
-    """Directly lift suspension from a user account."""
-    user = User.query.get_or_404(user_id)
-    user.is_suspended = False
-    user.suspension_until = None
-
-    log_entry = ModLog(
-        admin_id=current_user.id,
-        action="unsuspend_user",
-        target_type="user",
-        target_id=user.id,
-        reason_given="Suspension lifted by admin.",
-    )
-    db.session.add(log_entry)
-    db.session.commit()
-
-    return jsonify({"status": "success", "message": f"Suspension lifted for @{user.username}.", "user_id": user.id}), 200
-
-
-@admin_bp.route("/users/<int:user_id>/ban", methods=["POST"])
-@admin_required
-def direct_ban_user(user_id: int):
-    """Directly permanently ban a user account."""
-    user = User.query.get_or_404(user_id)
-    if user.id == current_user.id:
-        return jsonify({"status": "error", "message": "You cannot ban your own admin account."}), 400
-
-    data = request.get_json(silent=True) if request.is_json else request.form
-    reason = (data.get("reason") or "Direct administrative permanent ban").strip()
-
-    user.is_banned = True
-    user.is_active = False
-
-    log_entry = ModLog(
-        admin_id=current_user.id,
-        action="ban_user",
-        target_type="user",
-        target_id=user.id,
-        reason_given=reason,
-    )
-    db.session.add(log_entry)
-    db.session.commit()
-
-    return jsonify({"status": "success", "message": f"User @{user.username} permanently banned.", "user_id": user.id}), 200
-
-
-@admin_bp.route("/users/<int:user_id>/unban", methods=["POST"])
-@admin_required
-def direct_unban_user(user_id: int):
-    """Directly lift ban from a user account."""
-    user = User.query.get_or_404(user_id)
-    user.is_banned = False
-    user.is_active = True
-
-    log_entry = ModLog(
-        admin_id=current_user.id,
-        action="unban_user",
-        target_type="user",
-        target_id=user.id,
-        reason_given="Ban revoked by admin.",
-    )
-    db.session.add(log_entry)
-    db.session.commit()
-
-    return jsonify({"status": "success", "message": f"Ban revoked for @{user.username}.", "user_id": user.id}), 200
+    flash(msg, "success")
+    return redirect(url_for("admin.dashboard"))
