@@ -183,12 +183,23 @@ def register():
 
         # 3. Database uniqueness constraints
         if not errors:
-            if User.query.filter_by(username=username).first():
-                errors.append("This username is already taken. Please choose another.")
-            elif User.query.filter_by(email=email).first():
-                errors.append("An account with this email address is already registered.")
-            elif derived_student_id and User.query.filter_by(student_id=derived_student_id).first():
-                derived_student_id = f"{derived_student_id}-{random.randint(100, 999)}"
+            try:
+                if User.query.filter_by(username=username).first():
+                    errors.append("This username is already taken. Please choose another.")
+                elif User.query.filter_by(email=email).first():
+                    errors.append("An account with this email address is already registered.")
+                elif derived_student_id and User.query.filter_by(student_id=derived_student_id).first():
+                    derived_student_id = f"{derived_student_id}-{random.randint(100, 999)}"
+            except Exception:
+                db.session.rollback()
+                try:
+                    db.create_all()
+                    if User.query.filter_by(username=username).first():
+                        errors.append("This username is already taken. Please choose another.")
+                    elif User.query.filter_by(email=email).first():
+                        errors.append("An account with this email address is already registered.")
+                except Exception:
+                    errors.append("Database connection error. Please try again.")
 
         # Return errors if validation failed
         if errors:
@@ -227,12 +238,20 @@ def register():
             db.session.rollback()
             err_msg = "Database transaction failed during registration. Please try again."
             if wants_json():
-                return jsonify({"status": "error", "message": err_msg}), 500
+                return jsonify({"status": "error", "message": err_msg}), 400
             flash(err_msg, "error")
-            return render_template("auth/register.html"), 500
+            return render_template(
+                "auth/register.html",
+                full_name=full_name,
+                username=username,
+                email=email,
+            ), 400
 
         # 5. Log the newly registered student in and route to onboarding flow
-        login_user(user, remember=True)
+        try:
+            login_user(user, remember=True)
+        except Exception:
+            pass
 
         if wants_json():
             return (

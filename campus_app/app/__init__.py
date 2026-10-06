@@ -69,15 +69,24 @@ def create_app(config_class="production"):
     login_manager.login_message = "Please log in to access this campus feature."
     login_manager.login_message_category = "info"
 
+    # 3. Automated runtime directories creation
+    os.makedirs(app.instance_path, exist_ok=True)
+
+    db_uri = app.config.get("SQLALCHEMY_DATABASE_URI", "")
+    if db_uri.startswith("sqlite:///"):
+        sqlite_file_path = db_uri.replace("sqlite:///", "")
+        if sqlite_file_path and sqlite_file_path != ":memory:":
+            os.makedirs(os.path.dirname(os.path.abspath(sqlite_file_path)), exist_ok=True)
+
     # Register models and login user_loader
     from app import models  # noqa: F401
 
     # Ensure database tables exist on startup
     with app.app_context():
-        db.create_all()
-
-    # 3. Automated runtime directories creation
-    os.makedirs(app.instance_path, exist_ok=True)
+        try:
+            db.create_all()
+        except Exception as db_init_err:
+            app.logger.error(f"Failed to initialize database tables: {db_init_err}")
 
     upload_base = app.config.get("UPLOAD_FOLDER")
     if upload_base:

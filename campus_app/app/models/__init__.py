@@ -1,4 +1,4 @@
-from app import login_manager
+from app import login_manager, db
 from app.models.user import User
 from app.models.post import Post, PostVote
 from app.models.vlog import Vlog
@@ -19,8 +19,8 @@ def load_user(user_id: str):
     Loads user instance from the database using primary key id.
     """
     try:
-        return User.query.get(int(user_id))
-    except (ValueError, TypeError):
+        return db.session.get(User, int(user_id))
+    except (ValueError, TypeError, Exception):
         return None
 
 
