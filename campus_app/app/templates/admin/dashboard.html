@@ -75,9 +75,9 @@
         <span class="metric-label">Total Campus Submissions</span>
         <span class="metric-icon">📊</span>
       </div>
-      <div class="metric-value font-mono">{{ metrics.total_posts + metrics.total_reviews + metrics.total_aux }}</div>
+      <div class="metric-value font-mono">{{ metrics.total_posts + (metrics.total_vlogs|default(0)) + metrics.total_aux }}</div>
       <div class="metric-sub font-mono">
-        {{ metrics.total_posts }} posts · {{ metrics.total_reviews }} course ratings · {{ metrics.total_aux }} aux
+        {{ metrics.total_posts }} posts · {{ metrics.total_vlogs|default(0) }} vlogs · {{ metrics.total_aux }} aux
       </div>
     </div>
   </div>
@@ -103,8 +103,8 @@
       <div>
         <h2 class="pane-title">Active Moderation Queue</h2>
         <p class="pane-subtitle">
-          Under KTU safety laws, anonymous confessions & course reviews are anonymous to the student public,
-          but strictly decrypted here to reveal true student IDs for defamation, harassment, and cheat-ring audits.
+          Under KTU safety laws, anonymous confessions are anonymous to the student public,
+          but strictly decrypted here to reveal true student IDs for defamation, harassment, and policy audits.
         </p>
       </div>
     </div>

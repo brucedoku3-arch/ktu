@@ -7,9 +7,6 @@ from app.models.moderation import Block, Report, ModLog
 from app.models.poll import PollOption, PollVote
 from app.models.facility import FacilityStatus
 from app.models.culture import AuxBattle, AuxSubmission, AuxVote
-from app.models.academic import CourseReview
-from app.models.swap import SkillSwap
-from app.models.social import FriendMatchRequest
 
 
 @login_manager.user_loader
@@ -39,8 +36,5 @@ __all__ = [
     "AuxBattle",
     "AuxSubmission",
     "AuxVote",
-    "CourseReview",
-    "SkillSwap",
-    "FriendMatchRequest",
     "load_user",
 ]

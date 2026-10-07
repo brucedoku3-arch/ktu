@@ -259,6 +259,7 @@ export interface CurrentStudentUser {
   avatar_url?: string;
   bio: string;
   is_admin: boolean;
+  role?: 'admin' | 'student' | 'moderator' | string;
   is_verified: boolean;
   is_onboarded: boolean;
   is_muted?: boolean;
@@ -272,21 +273,111 @@ export interface CurrentStudentUser {
 export default function App() {
   const ADMIN_EMAIL = 'brucedoku3@gmail.com';
 
-  // Current student user profile (Defaults to regular verified student; is_admin is false)
+  // Current student user profile
   const [currentUser, setCurrentUser] = useState<CurrentStudentUser>(() => {
     try {
       const saved = localStorage.getItem('ktu_active_user');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (
+          parsed.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase() ||
+          parsed.email?.toLowerCase().trim() === 'brucedoku3@gmail.com' ||
+          parsed.email?.toLowerCase().trim().startsWith('brucedoku') ||
+          parsed.username?.toLowerCase().trim().startsWith('brucedoku') ||
+          parsed.email?.toLowerCase().trim() === 'bruce20597216248@gmail.com'
+        ) {
+          parsed.is_admin = true;
+          parsed.role = 'admin';
+        }
+        return parsed;
+      }
     } catch (e) {}
     return {
+      id: 1,
+      full_name: 'Bruce Doku',
+      name: 'Bruce Doku',
+      username: 'brucedoku',
+      student_id: 'ADMIN-001',
+      email: 'brucedoku3@gmail.com',
+      gender: 'male' as 'male' | 'female',
+      level: 200 as 100 | 200 | 300 | 400,
+      faculty: 'Directorate of Student Affairs & Engineering',
+      program: 'Super-Administrator & Dean Oversight',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      bio: 'Dean of Student Affairs & Super-Administrator for KTU CampusSocial.',
+      is_admin: true,
+      role: 'admin',
+      is_verified: true,
+      is_onboarded: true,
+    };
+  });
+
+  // User authentication state
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    try {
+      const stored = localStorage.getItem('ktu_is_logged_in');
+      return stored !== null ? stored === 'true' : true;
+    } catch (e) {
+      return true;
+    }
+  });
+
+  // Admin verification hook for brucedoku3@gmail.com
+  useEffect(() => {
+    const email = currentUser?.email?.toLowerCase().trim();
+    const username = currentUser?.username?.toLowerCase().trim();
+    if (
+      email === ADMIN_EMAIL.toLowerCase() ||
+      email === 'brucedoku3@gmail.com' ||
+      email?.startsWith('brucedoku') ||
+      username?.startsWith('brucedoku') ||
+      email === 'bruce20597216248@gmail.com'
+    ) {
+      if (!currentUser.is_admin || currentUser.role !== 'admin') {
+        const adminProfile = { ...currentUser, is_admin: true, role: 'admin' };
+        setCurrentUser(adminProfile);
+        try {
+          localStorage.setItem('ktu_active_user', JSON.stringify(adminProfile));
+        } catch (e) {}
+      }
+    }
+  }, [currentUser?.email, currentUser?.username, currentUser?.is_admin, currentUser?.role]);
+
+  const loginAsBruceAdmin = () => {
+    const adminProfile: CurrentStudentUser = {
+      id: 1,
+      full_name: 'Bruce Doku',
+      name: 'Bruce Doku',
+      username: 'brucedoku',
+      student_id: 'ADMIN-001',
+      email: ADMIN_EMAIL,
+      gender: 'male',
+      level: 200,
+      faculty: 'Directorate of Student Affairs & Engineering',
+      program: 'Super-Administrator & Dean Oversight',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      bio: 'Dean of Student Affairs & Super-Administrator for KTU CampusSocial.',
+      is_admin: true,
+      is_verified: true,
+      is_onboarded: true,
+    };
+    setCurrentUser(adminProfile);
+    setIsLoggedIn(true);
+    triggerToast('👑 Authenticated as Super-Admin (Bruce Doku)! Full safety and moderation controls active.');
+  };
+
+  const loginAsStudentKwame = () => {
+    const studentProfile: CurrentStudentUser = {
       id: 2,
       full_name: 'Kwame Mensah',
       name: 'Kwame Mensah',
       username: 'kwame_cs',
       student_id: '0420230012',
       email: '0420230012@ktu.edu.gh',
-      gender: 'male' as 'male' | 'female',
-      level: 200 as 100 | 200 | 300 | 400,
+      gender: 'male',
+      level: 200,
       faculty: 'Faculty of Applied Science and Technology (FAST)',
       program: 'B.Tech Computer Science',
       avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80',
@@ -296,18 +387,10 @@ export default function App() {
       is_verified: true,
       is_onboarded: true,
     };
-  });
-
-  // User authentication state:
-  // When false (default on site visit): KTU Landing Page is the very first page visitors see.
-  // When true: directed to the main campus feed (/feed).
-  const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    try {
-      return localStorage.getItem('ktu_is_logged_in') === 'true';
-    } catch (e) {
-      return false;
-    }
-  });
+    setCurrentUser(studentProfile);
+    setActiveTab('vlogs');
+    triggerToast('Switched to verified student view (@kwame_cs).');
+  };
 
   // Sync session changes
   useEffect(() => {
@@ -474,6 +557,12 @@ export default function App() {
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [vlogProgress, setVlogProgress] = useState(0);
+  const [isScrubbing, setIsScrubbing] = useState(false);
+  const [hoverScrubPercent, setHoverScrubPercent] = useState<number | null>(null);
+  const [scrubPreviewSeconds, setScrubPreviewSeconds] = useState<number | null>(null);
+  const scrubberContainerRef = useRef<HTMLDivElement>(null);
+  const wasPlayingBeforeScrubRef = useRef<boolean>(true);
+  const currentVideoRef = useRef<HTMLVideoElement | null>(null);
   const [vlogFeedSubTab, setVlogFeedSubTab] = useState<'foryou' | 'following'>('foryou');
   const [showVlogComments, setShowVlogComments] = useState(false);
   const [showVlogCreator, setShowVlogCreator] = useState(false);
@@ -501,12 +590,44 @@ export default function App() {
 
   const [vlogsList, setVlogsList] = useState<VlogItem[]>([
     {
+      id: 2,
+      author: 'adwoa_procure',
+      studentId: 'KTU/FBMS/PSC/22/114',
+      avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80',
+      caption: 'Golden hour walk from CCB block past the University Library towards GETFund Hostel 👤✨ #campusvibes #ktu',
+      duration: 30.0,
+      views: 730,
+      upvotes: 219,
+      downvotes: 1,
+      userVote: 0,
+      videoPlaceholderBg: 'from-amber-900 via-orange-950 to-stone-900',
+      timeAgo: '3h ago',
+      videoTitle: 'GETFund & Central Library Sunset',
+      facultyBadge: 'FBMS · Procurement',
+      category: 'campus_life',
+      soundTrack: 'Kweku Smoke - Kweku Playman · KTU Aux Battle',
+      location: 'Central Library Walkway to GETFund Hostels',
+      comments: [
+        {
+          id: 3,
+          author: 'ama_stats',
+          studentId: '04/2023/0201D',
+          faculty: 'FAST · Statistics',
+          avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=120&auto=format&fit=crop&q=80',
+          text: 'The evening breeze along that GETFund avenue hits so differently after 6 hours of continuous lectures.',
+          time: '2h ago',
+          likes: 18,
+          userLiked: true,
+        },
+      ],
+    },
+    {
       id: 1,
       author: 'kofi_eng',
       studentId: 'KTU/FOE/AUT/23/041',
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
       caption: 'Testing the diagnostic scanner in the New 5-Storey Multipurpose Engineering Facility! 🚗⚡ #ktu #foe #practicals',
-      duration: 24.5,
+      duration: 30.0,
       views: 482,
       upvotes: 114,
       downvotes: 2,
@@ -540,38 +661,6 @@ export default function App() {
           time: '30m ago',
           likes: 29,
           userLiked: false,
-        },
-      ],
-    },
-    {
-      id: 2,
-      author: 'adwoa_procure',
-      studentId: 'KTU/FBMS/PSC/22/114',
-      avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80',
-      caption: 'Golden hour walk from CCB block past the University Library towards GETFund Hostel 🌅✨ #campusvibes #ktu',
-      duration: 18.2,
-      views: 730,
-      upvotes: 219,
-      downvotes: 1,
-      userVote: 0,
-      videoPlaceholderBg: 'from-amber-900 via-orange-950 to-stone-900',
-      timeAgo: '3h ago',
-      videoTitle: 'GETFund & Central Library Sunset',
-      facultyBadge: 'FBMS · Procurement',
-      category: 'campus_life',
-      soundTrack: 'Kweku Smoke - Kweku Playman · KTU Aux Battle',
-      location: 'Central Library Walkway to GETFund Hostels',
-      comments: [
-        {
-          id: 3,
-          author: 'ama_stats',
-          studentId: '04/2023/0201D',
-          faculty: 'FAST · Statistics',
-          avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=120&auto=format&fit=crop&q=80',
-          text: 'The evening breeze along that GETFund avenue hits so differently after 6 hours of continuous lectures.',
-          time: '2h ago',
-          likes: 18,
-          userLiked: true,
         },
       ],
     },
@@ -612,7 +701,7 @@ export default function App() {
       studentId: 'KTU/FAST/CS/23/089',
       avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80',
       caption: 'Midnight React & Flask API debugging sprint at CCB Computer Lab 2! Almost ready for deployment 💻🚀 #fast #ktu',
-      duration: 22.0,
+      duration: 30.0,
       views: 512,
       upvotes: 187,
       downvotes: 3,
@@ -643,7 +732,7 @@ export default function App() {
       studentId: 'KTU/FAST/HCI/24/019',
       avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
       caption: 'Fresh waakye and fried plantain fresh out the pot at Food Village near Haleluya! 🍛😋 Best breakfast on campus #ktufoodie',
-      duration: 15.5,
+      duration: 30.0,
       views: 890,
       upvotes: 342,
       downvotes: 0,
@@ -670,12 +759,12 @@ export default function App() {
     },
   ]);
 
-  // 30-Second Vlog auto-playback progress timer
+  // 30-Second Vlog auto-playback progress timer (pauses while scrubbing)
   useEffect(() => {
-    if (!isPlaying || activeTab !== 'vlogs') return;
+    if (!isPlaying || activeTab !== 'vlogs' || isScrubbing) return;
 
     const currentVlog = vlogsList[activeVlogIndex];
-    const totalDuration = currentVlog?.duration || 20;
+    const totalDuration = currentVlog?.duration || 30;
     const intervalMs = 100;
     const stepPercent = 100 / (totalDuration * (1000 / intervalMs));
 
@@ -690,13 +779,145 @@ export default function App() {
     }, intervalMs);
 
     return () => clearInterval(timer);
-  }, [isPlaying, activeTab, activeVlogIndex, vlogsList]);
+  }, [isPlaying, activeTab, activeVlogIndex, vlogsList, isScrubbing]);
+
+  // Sync playing and muted states with current HTML video element if present
+  useEffect(() => {
+    if (!currentVideoRef.current) return;
+    if (isPlaying && !isScrubbing) {
+      currentVideoRef.current.play().catch(() => {});
+    } else {
+      currentVideoRef.current.pause();
+    }
+  }, [isPlaying, isScrubbing, activeVlogIndex]);
+
+  useEffect(() => {
+    if (currentVideoRef.current) {
+      currentVideoRef.current.muted = isMuted;
+    }
+  }, [isMuted]);
+
+  // Helper to format video seconds into M:SS
+  const formatVlogTime = (sec: number) => {
+    const totalSec = Math.max(0, Math.floor(sec));
+    const mins = Math.floor(totalSec / 60);
+    const remainder = totalSec % 60;
+    return `${mins}:${remainder < 10 ? '0' : ''}${remainder}`;
+  };
+
+  // Calculate percentage from clientX relative to scrubber bar container
+  const getScrubPercentageFromClientX = (clientX: number): number => {
+    if (!scrubberContainerRef.current) return 0;
+    const rect = scrubberContainerRef.current.getBoundingClientRect();
+    if (rect.width <= 0) return 0;
+    const offsetX = clientX - rect.left;
+    return Math.max(0, Math.min(100, (offsetX / rect.width) * 100));
+  };
+
+  // Seek video and update progress state
+  const applyVlogSeek = (percent: number) => {
+    const clampedPercent = Math.max(0, Math.min(100, percent));
+    setVlogProgress(clampedPercent);
+    const currentVlog = vlogsList[activeVlogIndex];
+    const totalDuration = currentVlog?.duration || 30;
+    const targetSeconds = (clampedPercent / 100) * totalDuration;
+    setScrubPreviewSeconds(targetSeconds);
+
+    if (currentVideoRef.current) {
+      const vidDur = currentVideoRef.current.duration;
+      const effectiveDur = vidDur && !isNaN(vidDur) && vidDur > 0 ? vidDur : totalDuration;
+      currentVideoRef.current.currentTime = (clampedPercent / 100) * effectiveDur;
+    }
+  };
+
+  // Seek by relative seconds (e.g. +3s, -3s, +5s, -5s)
+  const seekVlogRelativeSeconds = (secondsDelta: number) => {
+    const currentVlog = vlogsList[activeVlogIndex];
+    const totalDuration = currentVlog?.duration || 30;
+    const currentSeconds = (vlogProgress / 100) * totalDuration;
+    const targetSeconds = Math.max(0, Math.min(totalDuration, currentSeconds + secondsDelta));
+    const targetPercent = (targetSeconds / totalDuration) * 100;
+    applyVlogSeek(targetPercent);
+  };
+
+  // Mouse drag handler for clickable & draggable progress scrubber
+  const handleScrubberMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    e.preventDefault();
+    wasPlayingBeforeScrubRef.current = isPlaying;
+    setIsScrubbing(true);
+
+    const initialPercent = getScrubPercentageFromClientX(e.clientX);
+    applyVlogSeek(initialPercent);
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      moveEvent.preventDefault();
+      const nextPercent = getScrubPercentageFromClientX(moveEvent.clientX);
+      applyVlogSeek(nextPercent);
+    };
+
+    const onMouseUp = () => {
+      setIsScrubbing(false);
+      setScrubPreviewSeconds(null);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      if (wasPlayingBeforeScrubRef.current) {
+        setIsPlaying(true);
+        if (currentVideoRef.current) {
+          currentVideoRef.current.play().catch(() => {});
+        }
+      }
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
+
+  // Touch drag handler for mobile/touch screens
+  const handleScrubberTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    if (!e.touches || e.touches.length === 0) return;
+    wasPlayingBeforeScrubRef.current = isPlaying;
+    setIsScrubbing(true);
+
+    const initialTouch = e.touches[0];
+    const initialPercent = getScrubPercentageFromClientX(initialTouch.clientX);
+    applyVlogSeek(initialPercent);
+
+    const onTouchMove = (moveEvent: TouchEvent) => {
+      if (!moveEvent.touches || moveEvent.touches.length === 0) return;
+      moveEvent.preventDefault();
+      const nextPercent = getScrubPercentageFromClientX(moveEvent.touches[0].clientX);
+      applyVlogSeek(nextPercent);
+    };
+
+    const onTouchEnd = () => {
+      setIsScrubbing(false);
+      setScrubPreviewSeconds(null);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
+      window.removeEventListener('touchcancel', onTouchEnd);
+      if (wasPlayingBeforeScrubRef.current) {
+        setIsPlaying(true);
+        if (currentVideoRef.current) {
+          currentVideoRef.current.play().catch(() => {});
+        }
+      }
+    };
+
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchend', onTouchEnd);
+    window.addEventListener('touchcancel', onTouchEnd);
+  };
 
   // Vertical navigation (flowing TikTok reel)
   const goToNextVlog = () => {
     setActiveVlogIndex((curr) => (curr + 1) % vlogsList.length);
     setDragOffsetY(0);
     setVlogProgress(0);
+    setIsScrubbing(false);
+    setHoverScrubPercent(null);
+    setScrubPreviewSeconds(null);
     setIsPlaying(true);
     setShowVlogComments(false);
     setShowVlogCreator(false);
@@ -706,6 +927,9 @@ export default function App() {
     setActiveVlogIndex((curr) => (curr - 1 + vlogsList.length) % vlogsList.length);
     setDragOffsetY(0);
     setVlogProgress(0);
+    setIsScrubbing(false);
+    setHoverScrubPercent(null);
+    setScrubPreviewSeconds(null);
     setIsPlaying(true);
     setShowVlogComments(false);
     setShowVlogCreator(false);
@@ -857,13 +1081,19 @@ export default function App() {
       } else if (e.code === 'ArrowUp' || e.code === 'KeyK') {
         e.preventDefault();
         goToPrevVlog();
+      } else if (e.code === 'ArrowLeft') {
+        e.preventDefault();
+        seekVlogRelativeSeconds(-3);
+      } else if (e.code === 'ArrowRight') {
+        e.preventDefault();
+        seekVlogRelativeSeconds(3);
       } else if (e.code === 'KeyM') {
         setIsMuted((m) => !m);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeTab, vlogsList.length]);
+  }, [activeTab, vlogsList.length, activeVlogIndex, vlogProgress]);
 
   // ---------------------------------------------------------------------------
   // 2. PEER-TO-PEER MESSAGING ENGINE STATE
@@ -2749,30 +2979,41 @@ export default function App() {
         <KTULandingPage
           onLoginSuccess={(userData) => {
             if (userData) {
+              const isBruceAdmin =
+                userData.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase() ||
+                userData.email?.toLowerCase().trim() === 'brucedoku3@gmail.com' ||
+                userData.email?.toLowerCase().trim().startsWith('brucedoku') ||
+                userData.username?.toLowerCase().trim().startsWith('brucedoku') ||
+                userData.email?.toLowerCase().trim() === 'bruce20597216248@gmail.com' ||
+                userData.is_admin === true;
+
+              const cleanUserData = {
+                ...userData,
+                ...(isBruceAdmin ? { is_admin: true, role: 'admin' } : {}),
+              };
+
               setCurrentUser((prev: CurrentStudentUser) => {
-                const updated = { ...prev, ...userData };
+                const updated = { ...prev, ...cleanUserData };
                 try {
                   localStorage.setItem('ktu_active_user', JSON.stringify(updated));
                 } catch (e) {}
                 return updated;
               });
               setStudentAccounts((prev) => {
-                if (prev.some((a) => a.username === userData.username || a.email === userData.email)) {
-                  return prev;
-                }
+                const existing = prev.filter((a) => a.username !== cleanUserData.username && a.email !== cleanUserData.email);
                 return [
                   {
-                    id: userData.id || Date.now(),
-                    student_id: userData.student_id || `KTU/2026/${Math.floor(1000 + Math.random() * 9000)}`,
-                    username: userData.username,
-                    email: userData.email,
-                    karma_score: 50,
-                    role: userData.is_admin ? 'admin' : 'student',
+                    id: cleanUserData.id || Date.now(),
+                    student_id: cleanUserData.student_id || `KTU/2026/${Math.floor(1000 + Math.random() * 9000)}`,
+                    username: cleanUserData.username,
+                    email: cleanUserData.email,
+                    karma_score: isBruceAdmin ? 100 : 50,
+                    role: isBruceAdmin ? 'admin' : 'student',
                     is_suspended: false,
                     is_banned: false,
-                    faculty: userData.faculty || 'Faculty of Applied Science and Technology (FAST)',
+                    faculty: cleanUserData.faculty || 'Faculty of Applied Science and Technology (FAST)',
                   },
-                  ...prev,
+                  ...existing,
                 ];
               });
             }
@@ -2792,104 +3033,33 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans antialiased selection:bg-indigo-100 selection:text-indigo-900">
       {/* ===================================================================== */}
-      {/* 1. TOP INSTITUTIONAL NAVY BAR (Matching ktu.edu.gh screenshot)        */}
+      {/* 1. MAIN CLEAN INSTITUTIONAL HEADER WITH HAMBURGER DRAWER BUTTON      */}
       {/* ===================================================================== */}
-      <div className="bg-[#002147] text-white px-3 sm:px-6 py-2 border-b border-[#0b2b52] z-50">
-        <div className={`mx-auto flex flex-col gap-1.5 transition-all duration-300 ${activeTab === 'vlogs' ? 'max-w-7xl' : 'max-w-4xl'}`}>
-          <div className="flex items-center justify-end gap-4 text-[11px] sm:text-xs font-medium text-slate-200">
-            <button
-              onClick={() => {
-                setActiveTab('onboarding');
-                triggerToast('Opening KTU Student Onboarding & Admissions');
-              }}
-              className="hover:text-amber-400 transition-colors cursor-pointer"
-            >
-              Apply Online
-            </button>
-            <span className="text-slate-500">|</span>
-            <button
-              onClick={() => {
-                setActiveTab('hub');
-                setHubSection('news');
-              }}
-              className="hover:text-amber-400 transition-colors cursor-pointer"
-            >
-              Staff Directory
-            </button>
-            <span className="text-slate-500">|</span>
-            <button
-              onClick={() => {
-                setActiveTab('hub');
-                setHubSection('events');
-              }}
-              className="hover:text-amber-400 transition-colors cursor-pointer"
-            >
-              Alumni
-            </button>
-          </div>
-
-          {/* Search bar with orange accent submit button */}
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (headerSearchQuery.trim()) {
-                triggerToast(`Searching campus network for "${headerSearchQuery}"...`);
-              }
-            }}
-            className="flex items-stretch w-full h-8 sm:h-9 bg-[#1e3a5f] rounded overflow-hidden border border-white/15"
-          >
-            <input
-              type="text"
-              value={headerSearchQuery}
-              onChange={(e) => setHeaderSearchQuery(e.target.value)}
-              placeholder="Search..."
-              className="flex-1 bg-transparent px-3 text-xs sm:text-sm text-white placeholder-slate-400 outline-none"
-            />
-            <button
-              type="submit"
-              className="w-11 sm:w-12 bg-[#e67e22] hover:bg-[#d35400] text-white flex items-center justify-center transition-colors cursor-pointer"
-              title="Search KTU Campus"
-            >
-              <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
-            </button>
-          </form>
-        </div>
-      </div>
-
-      {/* ===================================================================== */}
-      {/* 2. MAIN WHITE INSTITUTIONAL HEADER WITH HAMBURGER BUTTON             */}
-      {/* ===================================================================== */}
-      <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-xs">
-        <div className={`mx-auto px-3 sm:px-6 h-15 flex items-center justify-between transition-all duration-300 ${activeTab === 'vlogs' ? 'max-w-7xl' : 'max-w-4xl'}`}>
+      <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-2xs">
+        <div className={`mx-auto px-3 sm:px-6 h-14 flex items-center justify-between transition-all duration-300 ${activeTab === 'vlogs' ? 'max-w-7xl' : 'max-w-4xl'}`}>
           
-          {/* Official KTU Crest Logo & 3-Line Institutional Title */}
+          {/* Official KTU Crest Logo & Campus Title (Matching Screenshot 11) */}
           <div
             onClick={() => {
               setActiveTab('vlogs');
               setIsMenuDrawerOpen(false);
             }}
-            className="flex items-center gap-3 cursor-pointer group select-none"
-            title="Koforidua Technical University"
+            className="flex items-center gap-2 cursor-pointer group select-none"
+            title="Koforidua Technical University · CampusSocial"
           >
-            <div className="w-10 h-10 rounded-full border border-slate-200 p-0.5 bg-white shadow-2xs group-hover:scale-105 transition-transform flex items-center justify-center overflow-hidden">
-              <img
-                src="https://lookaside.fbsbx.com/lookaside/crawler/media/?media_id=100069632100022"
-                alt="KTU Crest"
-                className="w-full h-full object-contain"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src = 'https://api.dicebear.com/7.x/identicon/svg?seed=KTU';
-                }}
-              />
+            <div className="w-9 h-9 rounded-xl bg-[#0080ff] text-white flex items-center justify-center shadow-xs overflow-hidden shrink-0 border border-[#0066cc]">
+              <svg viewBox="0 0 24 24" className="w-5.5 h-5.5 fill-white" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L2 7l10 5 10-5-10-5z" fill="white" />
+                <path d="M5 10.5v5a7 7 0 0014 0v-5" stroke="white" strokeWidth="2" strokeLinecap="round" fill="none" />
+                <path d="M2 17l10 5 10-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+              </svg>
             </div>
-            <div className="flex flex-col leading-[1.1]">
-              <span className="font-extrabold text-[12px] sm:text-[13px] tracking-wider text-[#002147] uppercase">
-                KOFORIDUA
+            <div className="flex flex-col leading-none">
+              <span className="font-black text-[14px] tracking-tight text-[#002147] uppercase leading-none">
+                KTU
               </span>
-              <span className="font-extrabold text-[12px] sm:text-[13px] tracking-wider text-[#002147] uppercase">
-                TECHNICAL
-              </span>
-              <span className="font-extrabold text-[12px] sm:text-[13px] tracking-wider text-[#002147] uppercase">
-                UNIVERSITY
+              <span className="font-black text-[12px] tracking-tight text-[#002147] uppercase leading-tight">
+                CAMPUSSOCIAL
               </span>
             </div>
           </div>
@@ -2898,7 +3068,7 @@ export default function App() {
           {/* DESKTOP HORIZONTAL NAVIGATION MENU BAR (Instant campus navigation)  */}
           {/* =================================================================== */}
           <nav className="hidden lg:flex items-center gap-1 xl:gap-2">
-            {/* Feed / Home */}
+            {/* Feed / Stories */}
             <button
               onClick={() => {
                 setActiveTab('vlogs');
@@ -2915,141 +3085,63 @@ export default function App() {
               <span>Feed</span>
             </button>
 
-            {/* Campus Life Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setDesktopDropdown(desktopDropdown === 'campus' ? null : 'campus')}
-                className={`px-3 py-1.5 text-xs xl:text-sm font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-                  ['memes', 'aux', 'chat'].includes(activeTab) || desktopDropdown === 'campus'
-                    ? 'bg-indigo-50 text-indigo-700 font-extrabold'
-                    : 'text-slate-700 hover:text-[#002147] hover:bg-slate-100'
-                }`}
-              >
-                <Flame className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-amber-500" />
-                <span>Campus Life</span>
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${desktopDropdown === 'campus' ? 'rotate-180 text-indigo-600' : ''}`} />
-              </button>
+            {/* Chat */}
+            <button
+              onClick={() => {
+                setActiveTab('chat');
+                setIsMenuDrawerOpen(false);
+                setDesktopDropdown(null);
+              }}
+              className={`px-3 py-1.5 text-xs xl:text-sm font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeTab === 'chat'
+                  ? 'bg-[#002147] text-white shadow-2xs'
+                  : 'text-slate-700 hover:text-[#002147] hover:bg-slate-100'
+              }`}
+            >
+              <MessageSquare className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-emerald-500" />
+              <span>Chat</span>
+            </button>
 
-              {desktopDropdown === 'campus' && (
-                <div
-                  className="absolute left-0 top-full mt-2 w-64 bg-white rounded-xl shadow-2xl border border-slate-200 py-2 z-50 animate-in fade-in slide-in-from-top-1"
-                  onMouseLeave={() => setDesktopDropdown(null)}
-                >
-                  <button
-                    onClick={() => {
-                      setActiveTab('memes');
-                      setDesktopDropdown(null);
-                    }}
-                    className="w-full px-4 py-2.5 text-left text-xs xl:text-sm font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-3 transition-colors cursor-pointer"
-                  >
-                    <Flame className="w-4 h-4 text-amber-500 shrink-0" />
-                    <div>
-                      <div className="font-bold text-slate-900">Meme Vault & Hall Wars</div>
-                      <div className="text-[11px] text-slate-500 font-normal">Campus satire, banter & viral memes</div>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setActiveTab('aux');
-                      setDesktopDropdown(null);
-                    }}
-                    className="w-full px-4 py-2.5 text-left text-xs xl:text-sm font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-3 transition-colors cursor-pointer"
-                  >
-                    <Music className="w-4 h-4 text-indigo-500 shrink-0" />
-                    <div>
-                      <div className="font-bold text-slate-900">87.7 FM Aux Cord Battles</div>
-                      <div className="text-[11px] text-slate-500 font-normal">Daily track battles & campus radio</div>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setActiveTab('chat');
-                      setDesktopDropdown(null);
-                    }}
-                    className="w-full px-4 py-2.5 text-left text-xs xl:text-sm font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-3 transition-colors cursor-pointer"
-                  >
-                    <MessageSquare className="w-4 h-4 text-emerald-500 shrink-0" />
-                    <div>
-                      <div className="font-bold text-slate-900">Peer Direct Messages</div>
-                      <div className="text-[11px] text-slate-500 font-normal">Direct encrypted student chat</div>
-                    </div>
-                  </button>
-                </div>
-              )}
-            </div>
+            {/* Explore / Memes */}
+            <button
+              onClick={() => {
+                setActiveTab('memes');
+                setIsMenuDrawerOpen(false);
+                setDesktopDropdown(null);
+              }}
+              className={`px-3 py-1.5 text-xs xl:text-sm font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeTab === 'memes'
+                  ? 'bg-[#002147] text-white shadow-2xs'
+                  : 'text-slate-700 hover:text-[#002147] hover:bg-slate-100'
+              }`}
+            >
+              <Flame className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-amber-500" />
+              <span>Memes</span>
+            </button>
 
-            {/* Academics Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setDesktopDropdown(desktopDropdown === 'academics' ? null : 'academics')}
-                className={`px-3 py-1.5 text-xs xl:text-sm font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-                  (activeTab === 'hub' && ['reviews', 'roulette', 'swap'].includes(hubSection)) || desktopDropdown === 'academics'
-                    ? 'bg-indigo-50 text-indigo-700 font-extrabold'
-                    : 'text-slate-700 hover:text-[#002147] hover:bg-slate-100'
-                }`}
-              >
-                <GraduationCap className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-indigo-500" />
-                <span>Academics</span>
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${desktopDropdown === 'academics' ? 'rotate-180 text-indigo-600' : ''}`} />
-              </button>
-
-              {desktopDropdown === 'academics' && (
-                <div
-                  className="absolute left-0 top-full mt-2 w-68 bg-white rounded-xl shadow-2xl border border-slate-200 py-2 z-50 animate-in fade-in slide-in-from-top-1"
-                  onMouseLeave={() => setDesktopDropdown(null)}
-                >
-                  <button
-                    onClick={() => {
-                      setActiveTab('hub');
-                      setHubSection('reviews');
-                      setDesktopDropdown(null);
-                    }}
-                    className="w-full px-4 py-2.5 text-left text-xs xl:text-sm font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-3 transition-colors cursor-pointer"
-                  >
-                    <GraduationCap className="w-4 h-4 text-indigo-500 shrink-0" />
-                    <div>
-                      <div className="font-bold text-slate-900">Course & Lecturer Reviews</div>
-                      <div className="text-[11px] text-slate-500 font-normal">Peer grading, syllabus tips & notes</div>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setActiveTab('hub');
-                      setHubSection('roulette');
-                      setDesktopDropdown(null);
-                    }}
-                    className="w-full px-4 py-2.5 text-left text-xs xl:text-sm font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-3 transition-colors cursor-pointer"
-                  >
-                    <Dice5 className="w-4 h-4 text-violet-500 shrink-0" />
-                    <div>
-                      <div className="font-bold text-slate-900">Study Buddy Roulette</div>
-                      <div className="text-[11px] text-slate-500 font-normal">Connect with exam & library partners</div>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setActiveTab('hub');
-                      setHubSection('swap');
-                      setDesktopDropdown(null);
-                    }}
-                    className="w-full px-4 py-2.5 text-left text-xs xl:text-sm font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-3 transition-colors cursor-pointer"
-                  >
-                    <Scissors className="w-4 h-4 text-amber-500 shrink-0" />
-                    <div>
-                      <div className="font-bold text-slate-900">Favor & Skill Barter</div>
-                      <div className="text-[11px] text-slate-500 font-normal">Swap skills, haircuts & tutoring</div>
-                    </div>
-                  </button>
-                </div>
-              )}
-            </div>
+            {/* Aux Cord Battles */}
+            <button
+              onClick={() => {
+                setActiveTab('aux');
+                setIsMenuDrawerOpen(false);
+                setDesktopDropdown(null);
+              }}
+              className={`px-3 py-1.5 text-xs xl:text-sm font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeTab === 'aux'
+                  ? 'bg-[#002147] text-white shadow-2xs'
+                  : 'text-slate-700 hover:text-[#002147] hover:bg-slate-100'
+              }`}
+            >
+              <Music className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-indigo-500" />
+              <span>87.7 FM Aux</span>
+            </button>
 
             {/* Student Hub Dropdown */}
             <div className="relative">
               <button
                 onClick={() => setDesktopDropdown(desktopDropdown === 'hub' ? null : 'hub')}
                 className={`px-3 py-1.5 text-xs xl:text-sm font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-                  (activeTab === 'hub' && ['news', 'polls', 'events'].includes(hubSection)) || desktopDropdown === 'hub'
+                  activeTab === 'hub' || desktopDropdown === 'hub'
                     ? 'bg-indigo-50 text-indigo-700 font-extrabold'
                     : 'text-slate-700 hover:text-[#002147] hover:bg-slate-100'
                 }`}
@@ -3067,65 +3159,35 @@ export default function App() {
                   <button
                     onClick={() => {
                       setActiveTab('hub');
-                      setHubSection('news');
-                      setDesktopDropdown(null);
-                    }}
-                    className="w-full px-4 py-2.5 text-left text-xs xl:text-sm font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-3 transition-colors cursor-pointer"
-                  >
-                    <FileText className="w-4 h-4 text-indigo-500 shrink-0" />
-                    <div>
-                      <div className="font-bold text-slate-900">Official Campus Notices</div>
-                      <div className="text-[11px] text-slate-500 font-normal">Dean & Registrar official bulletins</div>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setActiveTab('hub');
                       setHubSection('polls');
                       setDesktopDropdown(null);
                     }}
-                    className="w-full px-4 py-2.5 text-left text-xs xl:text-sm font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-3 transition-colors cursor-pointer"
+                    className="w-full px-4 py-2 text-left text-xs xl:text-sm font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-3 transition-colors cursor-pointer"
                   >
                     <BarChart2 className="w-4 h-4 text-emerald-500 shrink-0" />
                     <div>
-                      <div className="font-bold text-slate-900">Live Student Polls</div>
-                      <div className="text-[11px] text-slate-500 font-normal">SRC voting & student surveys</div>
+                      <div className="font-bold text-slate-900">Campus Polls & Surveys</div>
+                      <div className="text-[11px] text-slate-500 font-normal">Student voting & SRC surveys</div>
                     </div>
                   </button>
-                  <button
-                    onClick={() => {
-                      setActiveTab('hub');
-                      setHubSection('events');
-                      setDesktopDropdown(null);
-                    }}
-                    className="w-full px-4 py-2.5 text-left text-xs xl:text-sm font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-3 transition-colors cursor-pointer"
-                  >
-                    <Calendar className="w-4 h-4 text-amber-500 shrink-0" />
-                    <div>
-                      <div className="font-bold text-slate-900">Events & SRC Calendar</div>
-                      <div className="text-[11px] text-slate-500 font-normal">Campus week, seminars & sports</div>
-                    </div>
-                  </button>
+                  {currentUser.is_admin && (
+                    <button
+                      onClick={() => {
+                        setActiveTab('admin');
+                        setDesktopDropdown(null);
+                      }}
+                      className="w-full px-4 py-2 text-left text-xs xl:text-sm font-semibold text-rose-700 hover:bg-rose-50 flex items-center gap-3 transition-colors cursor-pointer"
+                    >
+                      <Shield className="w-4 h-4 text-rose-600 shrink-0" />
+                      <div>
+                        <div className="font-bold text-rose-900">Safety Command Center</div>
+                        <div className="text-[11px] text-rose-600 font-normal">Admin Moderation & Student Records</div>
+                      </div>
+                    </button>
+                  )}
                 </div>
               )}
             </div>
-
-            {/* Admissions */}
-            <button
-              onClick={() => {
-                setActiveTab('onboarding');
-                setIsMenuDrawerOpen(false);
-                setDesktopDropdown(null);
-              }}
-              className={`px-3 py-1.5 text-xs xl:text-sm font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-                activeTab === 'onboarding'
-                  ? 'bg-[#002147] text-white shadow-2xs'
-                  : 'text-slate-700 hover:text-[#002147] hover:bg-slate-100'
-              }`}
-            >
-              <UserPlus className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-emerald-500" />
-              <span>Admissions</span>
-            </button>
 
             {/* Admin Center (if admin) */}
             {currentUser.is_admin && (
@@ -3195,7 +3257,7 @@ export default function App() {
                 setActiveTab('profile');
                 setIsMenuDrawerOpen(false);
               }}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-[#002147] transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-[#002147] transition-colors cursor-pointer"
               title={`Logged in as @${currentUser.username}`}
             >
               <img
@@ -3207,13 +3269,13 @@ export default function App() {
                     'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80';
                 }}
               />
-              <span className="truncate max-w-[60px] sm:max-w-[95px]">@{currentUser.username}</span>
+              <span className="truncate max-w-[65px] sm:max-w-[95px]">@{currentUser.username}</span>
             </button>
 
-            {/* Prominent KTU MENU Button with Label */}
+            {/* Prominent KTU MENU Button (Matching Screenshot 11 & 13) */}
             <button
               onClick={() => setIsMenuDrawerOpen(!isMenuDrawerOpen)}
-              className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg border font-extrabold text-xs sm:text-sm tracking-wide transition-all cursor-pointer shadow-2xs ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border font-black text-xs sm:text-sm tracking-wide transition-all cursor-pointer shadow-2xs ${
                 isMenuDrawerOpen
                   ? 'bg-[#002147] border-[#002147] text-white ring-2 ring-[#002147]/20'
                   : 'bg-white border-slate-300 hover:border-[#002147] hover:bg-slate-50 text-[#002147]'
@@ -3222,40 +3284,51 @@ export default function App() {
               aria-expanded={isMenuDrawerOpen}
               title="Toggle KTU Campus Navigation Menu"
             >
-              <div className="w-4.5 h-3.5 flex flex-col justify-between items-center shrink-0">
-                <span className={`w-4.5 h-[2px] rounded-full transition-all duration-200 ${isMenuDrawerOpen ? 'bg-white translate-y-[5.5px] rotate-45' : 'bg-[#002147]'}`}></span>
-                <span className={`w-4.5 h-[2px] rounded-full transition-all duration-200 ${isMenuDrawerOpen ? 'opacity-0' : 'bg-[#002147]'}`}></span>
-                <span className={`w-4.5 h-[2px] rounded-full transition-all duration-200 ${isMenuDrawerOpen ? 'bg-white -translate-y-[5.5px] -rotate-45' : 'bg-[#002147]'}`}></span>
-              </div>
-              <span className="uppercase text-[11px] sm:text-xs font-black">
-                {isMenuDrawerOpen ? 'Close' : 'Menu'}
-              </span>
+              {isMenuDrawerOpen ? (
+                <>
+                  <span className="text-sm font-black leading-none">✕</span>
+                  <span className="uppercase text-[11px] sm:text-xs font-black">CLOSE</span>
+                </>
+              ) : (
+                <>
+                  <Menu className="w-4 h-4 stroke-[2.5]" />
+                  <span className="uppercase text-[11px] sm:text-xs font-black">MENU</span>
+                </>
+              )}
             </button>
 
           </div>
         </div>
 
         {/* =================================================================== */}
-        {/* 3. EXPANDABLE NAVIGATION DRAWER MENU                                */}
+        {/* 2. EXPANDABLE NAVIGATION DRAWER MENU (MAINTAINING OLD FEATURES)     */}
         {/* =================================================================== */}
-        {isMenuDrawerOpen && (
-          <>
-            {/* Backdrop for outside click */}
-            <div
-              className="fixed inset-0 top-[116px] sm:top-[122px] bg-slate-900/40 backdrop-blur-xs z-30 transition-opacity animate-in fade-in"
-              onClick={() => setIsMenuDrawerOpen(false)}
-            />
+        {/* Backdrop for outside click */}
+        <div
+          className={`fixed inset-0 top-14 bg-slate-900/40 backdrop-blur-xs z-30 transition-all duration-300 ease-in-out ${
+            isMenuDrawerOpen
+              ? 'opacity-100 visible pointer-events-auto'
+              : 'opacity-0 invisible pointer-events-none'
+          }`}
+          onClick={() => setIsMenuDrawerOpen(false)}
+        />
 
-            <nav className="relative z-40 bg-white border-t border-slate-200 shadow-2xl border-b-4 border-[#002147] animate-in slide-in-from-top-2 duration-200 max-h-[85vh] overflow-y-auto">
-              <div className={`mx-auto ${activeTab === 'vlogs' ? 'max-w-7xl' : 'max-w-4xl'}`}>
+        <nav
+          className={`fixed top-14 left-0 right-0 md:left-auto md:right-4 z-40 w-full md:max-w-[400px] bg-white border-t md:border border-slate-200 shadow-2xl border-b-4 border-[#002147] md:rounded-b-2xl max-h-[calc(100vh-4rem)] overflow-y-auto transition-all duration-300 ease-in-out transform ${
+            isMenuDrawerOpen
+              ? 'opacity-100 visible pointer-events-auto translate-y-0 scale-100'
+              : 'opacity-0 invisible pointer-events-none -translate-y-2 scale-98 pointer-events-none'
+          }`}
+        >
+              <div className="w-full">
                 
-                {/* Institutional Student Identity Card in Menu */}
-                <div className="p-4 sm:p-5 bg-gradient-to-r from-slate-50 via-indigo-50/30 to-slate-50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                {/* Student Identity Card in Menu */}
+                <div className="p-3.5 sm:p-5 bg-gradient-to-r from-slate-50 via-indigo-50/30 to-slate-50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <img
                       src={currentUser.avatar}
                       alt={currentUser.name}
-                      className="w-12 h-12 rounded-xl object-cover border-2 border-white shadow-xs shrink-0"
+                      className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl object-cover border-2 border-white shadow-xs shrink-0"
                       onError={(e) => {
                         (e.currentTarget as HTMLImageElement).src =
                           'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80';
@@ -3302,7 +3375,7 @@ export default function App() {
                       className="px-3 py-1.5 text-xs font-bold rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 transition-colors cursor-pointer flex items-center gap-1.5"
                     >
                       <AlertTriangle className="w-3.5 h-3.5" />
-                      <span>Safety Report</span>
+                      <span>Report</span>
                     </button>
                   </div>
                 </div>
@@ -3314,7 +3387,7 @@ export default function App() {
                     type="text"
                     value={menuFilterQuery}
                     onChange={(e) => setMenuFilterQuery(e.target.value)}
-                    placeholder="Filter menu options (e.g., aux, courses, reviews, chat, library)..."
+                    placeholder="Filter features (feed, chat, memes, aux, polls)..."
                     className="w-full text-xs sm:text-sm bg-transparent outline-none text-slate-800 placeholder-slate-400"
                   />
                   {menuFilterQuery && (
@@ -3327,298 +3400,186 @@ export default function App() {
                   )}
                 </div>
 
-                {/* Menu Items Accordion / List */}
+                {/* Main Student Features Navigation List (Matching Screenshot 13) */}
                 <div className="divide-y divide-slate-100">
                   
                   {/* 1. Home / Feed */}
-                  {(!menuFilterQuery || 'home feed stories vlogs'.includes(menuFilterQuery.toLowerCase())) && (
+                  {(!menuFilterQuery || 'feed home stories vlogs videos'.includes(menuFilterQuery.toLowerCase())) && (
                     <button
                       onClick={() => {
                         setActiveTab('vlogs');
                         setIsMenuDrawerOpen(false);
                       }}
-                      className={`w-full text-left px-5 sm:px-8 py-3.5 text-[15px] font-bold flex items-center justify-between transition-colors cursor-pointer ${
+                      className={`w-full text-left px-5 sm:px-8 py-3.5 text-[14px] sm:text-[15px] font-bold flex items-center justify-between transition-colors cursor-pointer ${
                         activeTab === 'vlogs' ? 'text-indigo-600 bg-indigo-50/50' : 'text-slate-900 hover:bg-slate-50'
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <Video className="w-4 h-4 text-rose-500" />
-                        <span>Home & Campus Feed</span>
+                        <Video className="w-4.5 h-4.5 text-rose-500 shrink-0" />
+                        <div>
+                          <div className="font-bold">Campus Feed & Stories</div>
+                          <div className="text-[11px] text-slate-500 font-normal">30-second student micro-vlogs & reels</div>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700">Watch</span>
+                    </button>
+                  )}
+
+                  {/* 2. Direct Messages */}
+                  {(!menuFilterQuery || 'chat messages dm peers inbox'.includes(menuFilterQuery.toLowerCase())) && (
+                    <button
+                      onClick={() => {
+                        setActiveTab('chat');
+                        setIsMenuDrawerOpen(false);
+                      }}
+                      className={`w-full text-left px-5 sm:px-8 py-3.5 text-[14px] sm:text-[15px] font-bold flex items-center justify-between transition-colors cursor-pointer ${
+                        activeTab === 'chat' ? 'text-indigo-600 bg-indigo-50/50' : 'text-slate-900 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <MessageSquare className="w-4.5 h-4.5 text-emerald-500 shrink-0" />
+                        <div>
+                          <div className="font-bold">Peer Direct Messages</div>
+                          <div className="text-[11px] text-slate-500 font-normal">Direct encrypted student chat & classmates</div>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">Chat</span>
+                    </button>
+                  )}
+
+                  {/* 3. Brainrot Meme Vault */}
+                  {(!menuFilterQuery || 'memes brainrot vault hall banter explore'.includes(menuFilterQuery.toLowerCase())) && (
+                    <button
+                      onClick={() => {
+                        setActiveTab('memes');
+                        setIsMenuDrawerOpen(false);
+                      }}
+                      className={`w-full text-left px-5 sm:px-8 py-3.5 text-[14px] sm:text-[15px] font-bold flex items-center justify-between transition-colors cursor-pointer ${
+                        activeTab === 'memes' ? 'text-indigo-600 bg-indigo-50/50' : 'text-slate-900 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Flame className="w-4.5 h-4.5 text-amber-500 shrink-0" />
+                        <div>
+                          <div className="font-bold">Brainrot Meme Vault & Hall Wars</div>
+                          <div className="text-[11px] text-slate-500 font-normal">Campus satire, banter & viral memes</div>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">Viral</span>
+                    </button>
+                  )}
+
+                  {/* 4. 87.7 FM Aux Cord Battles */}
+                  {(!menuFilterQuery || 'aux music battles radio audio tracks dj'.includes(menuFilterQuery.toLowerCase())) && (
+                    <button
+                      onClick={() => {
+                        setActiveTab('aux');
+                        setIsMenuDrawerOpen(false);
+                      }}
+                      className={`w-full text-left px-5 sm:px-8 py-3.5 text-[14px] sm:text-[15px] font-bold flex items-center justify-between transition-colors cursor-pointer ${
+                        activeTab === 'aux' ? 'text-indigo-600 bg-indigo-50/50' : 'text-slate-900 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Music className="w-4.5 h-4.5 text-indigo-500 shrink-0" />
+                        <div>
+                          <div className="font-bold">87.7 FM Aux Cord Battles</div>
+                          <div className="text-[11px] text-slate-500 font-normal">Daily music duels & campus radio</div>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700">87.7 FM</span>
+                    </button>
+                  )}
+
+                  {/* 5. Live Campus Polls */}
+                  {(!menuFilterQuery || 'polls voting surveys src elections hub'.includes(menuFilterQuery.toLowerCase())) && (
+                    <button
+                      onClick={() => {
+                        setActiveTab('hub');
+                        setHubSection('polls');
+                        setIsMenuDrawerOpen(false);
+                      }}
+                      className="w-full text-left px-5 sm:px-8 py-3.5 text-[14px] sm:text-[15px] font-bold text-slate-900 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3">
+                        <BarChart2 className="w-4.5 h-4.5 text-emerald-500 shrink-0" />
+                        <div>
+                          <div className="font-bold">Live Student Polls & Surveys</div>
+                          <div className="text-[11px] text-slate-500 font-normal">SRC voting & real-time campus opinions</div>
+                        </div>
                       </div>
                       <ChevronRight className="w-4 h-4 text-slate-400" />
                     </button>
                   )}
 
-                  {/* 2. Campus Life (Expandable Accordion) */}
-                  {(!menuFilterQuery || 'campus life memes aux radio audio music chat messages'.includes(menuFilterQuery.toLowerCase())) && (
-                    <div>
+                  {/* Admin Safety Command Center (when admin) */}
+                  {currentUser.is_admin ? (
+                    <div className="bg-rose-50/60 p-3 sm:px-6 space-y-2">
                       <button
-                        onClick={() => setExpandedNavCategory(expandedNavCategory === 'campus_life' ? null : 'campus_life')}
-                        className="w-full text-left px-5 sm:px-8 py-3.5 text-[15px] font-bold text-slate-900 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer"
+                        onClick={() => {
+                          setActiveTab('admin');
+                          setIsMenuDrawerOpen(false);
+                        }}
+                        className="w-full text-left p-3 bg-white border border-rose-200 rounded-xl shadow-xs font-bold text-rose-900 hover:bg-rose-50 flex items-center justify-between transition-colors cursor-pointer"
                       >
-                        <div className="flex items-center gap-3">
-                          <Flame className="w-4 h-4 text-amber-500" />
-                          <span>Campus Life & Media</span>
+                        <div className="flex items-center gap-2.5">
+                          <Shield className="w-4.5 h-4.5 text-rose-600 shrink-0" />
+                          <div>
+                            <div className="text-xs sm:text-sm font-extrabold flex items-center gap-1.5">
+                              <span>Safety Command Center</span>
+                              <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-rose-600 text-white font-mono">
+                                👑 Dean Oversight
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-rose-700 font-normal">
+                              Moderate reports ({pendingReportsCount} pending), bans & campus safety
+                            </div>
+                          </div>
                         </div>
-                        <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${expandedNavCategory === 'campus_life' || menuFilterQuery ? 'rotate-180 text-indigo-600' : ''}`} />
+                        <ChevronRight className="w-4 h-4 text-rose-400" />
                       </button>
-                      {(expandedNavCategory === 'campus_life' || menuFilterQuery) && (
-                        <div className="bg-slate-50/70 border-t border-slate-100 py-1 pl-8 sm:pl-12 pr-6 text-sm flex flex-col gap-1">
-                          <button
-                            onClick={() => {
-                              setActiveTab('vlogs');
-                              setIsMenuDrawerOpen(false);
-                            }}
-                            className="text-left py-2 text-slate-700 hover:text-indigo-600 font-medium flex items-center justify-between cursor-pointer"
-                          >
-                            <span className="flex items-center gap-2">
-                              <Film className="w-3.5 h-3.5 text-rose-500" />
-                              30-Second Campus Micro-Vlogs
-                            </span>
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-50 text-rose-700">Hot</span>
-                          </button>
-                          <button
-                            onClick={() => {
-                              setActiveTab('aux');
-                              setIsMenuDrawerOpen(false);
-                            }}
-                            className="text-left py-2 text-slate-700 hover:text-indigo-600 font-medium flex items-center justify-between cursor-pointer"
-                          >
-                            <span className="flex items-center gap-2">
-                              <Music className="w-3.5 h-3.5 text-indigo-500" />
-                              Daily Aux Cord Battles (87.7 FM)
-                            </span>
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700">Live</span>
-                          </button>
-                          <button
-                            onClick={() => {
-                              setActiveTab('memes');
-                              setIsMenuDrawerOpen(false);
-                            }}
-                            className="text-left py-2 text-slate-700 hover:text-indigo-600 font-medium flex items-center justify-between cursor-pointer"
-                          >
-                            <span className="flex items-center gap-2">
-                              <Flame className="w-3.5 h-3.5 text-amber-500" />
-                              Brainrot Meme Vault & Hall Wars
-                            </span>
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700">Viral</span>
-                          </button>
-                          <button
-                            onClick={() => {
-                              setActiveTab('chat');
-                              setIsMenuDrawerOpen(false);
-                            }}
-                            className="text-left py-2 text-slate-700 hover:text-indigo-600 font-medium flex items-center justify-between cursor-pointer"
-                          >
-                            <span className="flex items-center gap-2">
-                              <MessageSquare className="w-3.5 h-3.5 text-emerald-500" />
-                              Peer Direct Messages
-                            </span>
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">Direct</span>
-                          </button>
+
+                      <button
+                        type="button"
+                        onClick={loginAsStudentKwame}
+                        className="w-full text-center py-2 text-xs font-bold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 rounded-lg cursor-pointer"
+                      >
+                        Switch to Student View (@kwame_cs)
+                      </button>
+                    </div>
+                  ) : (
+                    /* Easy Quick Admin Login for Bruce Doku (brucedoku3@gmail.com) */
+                    <div className="p-3 sm:px-6 bg-slate-50 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={loginAsBruceAdmin}
+                        className="w-full py-2.5 px-3 bg-white border border-indigo-200 rounded-xl shadow-xs text-xs font-bold text-indigo-700 hover:bg-indigo-50 hover:border-indigo-300 transition-all flex items-center justify-between cursor-pointer"
+                        title="Instant administrator access for Bruce Doku"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Shield className="w-4 h-4 text-indigo-600" />
+                          <div className="text-left">
+                            <span className="block font-bold">Admin Login (Bruce Doku)</span>
+                            <span className="block text-[10px] text-slate-500 font-mono">brucedoku3@gmail.com</span>
+                          </div>
                         </div>
-                      )}
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-100 text-indigo-800">
+                          Login 👑
+                        </span>
+                      </button>
                     </div>
                   )}
 
-                  {/* 3. Academics (Expandable Accordion) */}
-                  {(!menuFilterQuery || 'academics courses reviews lecturers study roulette library swap favor'.includes(menuFilterQuery.toLowerCase())) && (
-                    <div>
-                      <button
-                        onClick={() => setExpandedNavCategory(expandedNavCategory === 'academics' ? null : 'academics')}
-                        className="w-full text-left px-5 sm:px-8 py-3.5 text-[15px] font-bold text-slate-900 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer"
-                      >
-                        <div className="flex items-center gap-3">
-                          <GraduationCap className="w-4 h-4 text-indigo-500" />
-                          <span>Academics & Study Tools</span>
-                        </div>
-                        <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${expandedNavCategory === 'academics' || menuFilterQuery ? 'rotate-180 text-indigo-600' : ''}`} />
-                      </button>
-                      {(expandedNavCategory === 'academics' || menuFilterQuery) && (
-                        <div className="bg-slate-50/70 border-t border-slate-100 py-1 pl-8 sm:pl-12 pr-6 text-sm flex flex-col gap-1">
-                          <button
-                            onClick={() => {
-                              setActiveTab('hub');
-                              setHubSection('reviews');
-                              setIsMenuDrawerOpen(false);
-                            }}
-                            className="text-left py-2 text-slate-700 hover:text-indigo-600 font-medium flex items-center gap-2 cursor-pointer"
-                          >
-                            <GraduationCap className="w-3.5 h-3.5 text-indigo-500" />
-                            Course & Lecturer Peer Reviews
-                          </button>
-                          <button
-                            onClick={() => {
-                              setActiveTab('hub');
-                              setHubSection('roulette');
-                              setIsMenuDrawerOpen(false);
-                            }}
-                            className="text-left py-2 text-slate-700 hover:text-indigo-600 font-medium flex items-center gap-2 cursor-pointer"
-                          >
-                            <Dice5 className="w-3.5 h-3.5 text-violet-500" />
-                            Library Study Buddy Roulette
-                          </button>
-                          <button
-                            onClick={() => {
-                              setActiveTab('hub');
-                              setHubSection('swap');
-                              setIsMenuDrawerOpen(false);
-                            }}
-                            className="text-left py-2 text-slate-700 hover:text-indigo-600 font-medium flex items-center gap-2 cursor-pointer"
-                          >
-                            <Scissors className="w-3.5 h-3.5 text-amber-500" />
-                            Campus Favor & Skill Barter
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* 4. Student Hub (Bulletins, Polls & Events) */}
-                  {(!menuFilterQuery || 'hub news bulletins events calendar polls voting'.includes(menuFilterQuery.toLowerCase())) && (
-                    <div>
-                      <button
-                        onClick={() => setExpandedNavCategory(expandedNavCategory === 'hub' ? null : 'hub')}
-                        className="w-full text-left px-5 sm:px-8 py-3.5 text-[15px] font-bold text-slate-900 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer"
-                      >
-                        <div className="flex items-center gap-3">
-                          <BookOpen className="w-4 h-4 text-emerald-500" />
-                          <span>Student Hub & Bulletins</span>
-                        </div>
-                        <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${expandedNavCategory === 'hub' || menuFilterQuery ? 'rotate-180 text-indigo-600' : ''}`} />
-                      </button>
-                      {(expandedNavCategory === 'hub' || menuFilterQuery) && (
-                        <div className="bg-slate-50/70 border-t border-slate-100 py-1 pl-8 sm:pl-12 pr-6 text-sm flex flex-col gap-1">
-                          <button
-                            onClick={() => {
-                              setActiveTab('hub');
-                              setHubSection('news');
-                              setIsMenuDrawerOpen(false);
-                            }}
-                            className="text-left py-2 text-slate-700 hover:text-indigo-600 font-medium flex items-center gap-2 cursor-pointer"
-                          >
-                            <FileText className="w-3.5 h-3.5 text-indigo-500" />
-                            Official Campus Notices & Bulletins
-                          </button>
-                          <button
-                            onClick={() => {
-                              setActiveTab('hub');
-                              setHubSection('polls');
-                              setIsMenuDrawerOpen(false);
-                            }}
-                            className="text-left py-2 text-slate-700 hover:text-indigo-600 font-medium flex items-center gap-2 cursor-pointer"
-                          >
-                            <BarChart2 className="w-3.5 h-3.5 text-emerald-500" />
-                            Live Student Polls & Surveys
-                          </button>
-                          <button
-                            onClick={() => {
-                              setActiveTab('hub');
-                              setHubSection('events');
-                              setIsMenuDrawerOpen(false);
-                            }}
-                            className="text-left py-2 text-slate-700 hover:text-indigo-600 font-medium flex items-center gap-2 cursor-pointer"
-                          >
-                            <Calendar className="w-3.5 h-3.5 text-amber-500" />
-                            Events Calendar & SRC Schedule
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* 5. Admissions & Identity */}
-                  {(!menuFilterQuery || 'admissions apply onboarding register profile verification'.includes(menuFilterQuery.toLowerCase())) && (
-                    <div>
-                      <button
-                        onClick={() => setExpandedNavCategory(expandedNavCategory === 'admissions' ? null : 'admissions')}
-                        className="w-full text-left px-5 sm:px-8 py-3.5 text-[15px] font-bold text-slate-900 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer"
-                      >
-                        <div className="flex items-center gap-3">
-                          <UserPlus className="w-4 h-4 text-emerald-500" />
-                          <span>Admissions & Verification</span>
-                        </div>
-                        <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${expandedNavCategory === 'admissions' || menuFilterQuery ? 'rotate-180 text-indigo-600' : ''}`} />
-                      </button>
-                      {(expandedNavCategory === 'admissions' || menuFilterQuery) && (
-                        <div className="bg-slate-50/70 border-t border-slate-100 py-1 pl-8 sm:pl-12 pr-6 text-sm flex flex-col gap-1">
-                          <button
-                            onClick={() => {
-                              setActiveTab('onboarding');
-                              setIsMenuDrawerOpen(false);
-                            }}
-                            className="text-left py-2 text-slate-700 hover:text-indigo-600 font-medium flex items-center gap-2 cursor-pointer"
-                          >
-                            <UserPlus className="w-3.5 h-3.5 text-emerald-500" />
-                            Student Profile Onboarding Wizard
-                          </button>
-                          <button
-                            onClick={() => {
-                              setActiveTab('profile');
-                              setIsMenuDrawerOpen(false);
-                            }}
-                            className="text-left py-2 text-slate-700 hover:text-indigo-600 font-medium flex items-center gap-2 cursor-pointer"
-                          >
-                            <UserCheck className="w-3.5 h-3.5 text-indigo-500" />
-                            Institutional Verification & ID
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* 6. Safety & Dean of Students */}
-                  {(!menuFilterQuery || 'safety admin dean report conduct harassment security emergency'.includes(menuFilterQuery.toLowerCase())) && (
-                    <div>
-                      <button
-                        onClick={() => setExpandedNavCategory(expandedNavCategory === 'safety' ? null : 'safety')}
-                        className="w-full text-left px-5 sm:px-8 py-3.5 text-[15px] font-bold text-slate-900 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer"
-                      >
-                        <div className="flex items-center gap-3">
-                          <ShieldAlert className="w-4 h-4 text-rose-500" />
-                          <span>Campus Safety & Dean of Students</span>
-                        </div>
-                        <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${expandedNavCategory === 'safety' || menuFilterQuery ? 'rotate-180 text-indigo-600' : ''}`} />
-                      </button>
-                      {(expandedNavCategory === 'safety' || menuFilterQuery) && (
-                        <div className="bg-slate-50/70 border-t border-slate-100 py-1 pl-8 sm:pl-12 pr-6 text-sm flex flex-col gap-1">
-                          <button
-                            onClick={() => {
-                              setShowReportModal(true);
-                              setIsMenuDrawerOpen(false);
-                            }}
-                            className="text-left py-2 text-rose-700 hover:text-rose-800 font-semibold flex items-center gap-2 cursor-pointer"
-                          >
-                            <AlertTriangle className="w-3.5 h-3.5 text-rose-500" />
-                            File Universal Safety & Conduct Report
-                          </button>
-                          {currentUser.is_admin && (
-                            <button
-                              onClick={() => {
-                                setActiveTab('admin');
-                                setIsMenuDrawerOpen(false);
-                              }}
-                              className="text-left py-2 text-rose-800 font-bold flex items-center gap-2 cursor-pointer"
-                            >
-                              <Shield className="w-3.5 h-3.5 text-rose-600" />
-                              Dean of Students Safety Command Center ({pendingReportsCount} pending)
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* 7. Sign Out / Exit */}
-                  <div className="px-5 sm:px-8 py-3 bg-slate-50 flex items-center justify-between">
+                  {/* Sign Out / Exit */}
+                  <div className="px-5 sm:px-8 py-3.5 bg-slate-50 flex items-center justify-between">
                     <button
                       onClick={() => {
                         setIsLoggedIn(false);
                         setIsMenuDrawerOpen(false);
                         try {
-                          localStorage.removeItem('ktu_is_logged_in');
+                          localStorage.setItem('ktu_is_logged_in', 'false');
                         } catch (e) {}
-                        triggerToast('Signed out. Returned to KTU Landing Page.');
+                        triggerToast('Signed out. Returned to KTU Welcome Screen.');
                       }}
                       className="text-xs font-bold text-rose-600 hover:text-rose-700 flex items-center gap-2 cursor-pointer py-1"
                     >
@@ -3626,15 +3587,13 @@ export default function App() {
                       Sign Out of KTU Social
                     </button>
                     <span className="text-[11px] text-slate-400 font-medium">
-                      Koforidua Technical University · 2026 Portal
+                      KTU CampusSocial · 2026
                     </span>
                   </div>
 
                 </div>
               </div>
             </nav>
-          </>
-        )}
       </header>
 
       {/* Real-time Campus Emergency & Advisory Broadcast System Banner */}
@@ -3653,8 +3612,8 @@ export default function App() {
       {/* ===================================================================== */}
       {/* MAIN VIEWPORT                                                         */}
       {/* ===================================================================== */}
-      <main className={`flex-1 w-full mx-auto px-3 sm:px-6 py-4 pb-24 md:pb-8 transition-all duration-300 ${
-        activeTab === 'vlogs' ? 'max-w-7xl' : 'max-w-md md:max-w-3xl'
+      <main className={`flex-1 w-full mx-auto px-2.5 sm:px-6 py-2 sm:py-4 pb-20 md:pb-8 transition-all duration-300 ${
+        activeTab === 'vlogs' ? 'max-w-7xl' : 'max-w-4xl'
       }`}>
         {feedbackToast && (
           <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 text-white text-xs px-4 py-2 rounded-full shadow-xl flex items-center gap-2 border border-slate-700 backdrop-blur-xs whitespace-nowrap animate-in fade-in slide-in-from-top-2">
@@ -4342,12 +4301,21 @@ export default function App() {
                   The Dean of Students & Campus Safety moderation command center is restricted to authorized university administrators. Normal student accounts do not have permission to view this console.
                 </p>
               </div>
-              <button
-                onClick={() => setActiveTab('vlogs')}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-xs"
-              >
-                Return to Campus Feed
-              </button>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-2">
+                <button
+                  onClick={loginAsBruceAdmin}
+                  className="w-full sm:w-auto px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
+                >
+                  <Shield className="w-3.5 h-3.5" />
+                  <span>Authenticate as Bruce Doku (Admin)</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('vlogs')}
+                  className="w-full sm:w-auto px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all cursor-pointer shadow-xs"
+                >
+                  Return to Campus Feed
+                </button>
+              </div>
             </div>
           )
         )}
@@ -4468,7 +4436,7 @@ export default function App() {
           const currentPartner = conversations.find((c) => c.partner_username === activePartnerUsername) || conversations[0];
 
           return (
-            <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden flex flex-col md:flex-row h-[calc(100dvh-12rem)] min-h-[500px] max-h-[780px] sm:h-[78vh]">
+            <div className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl shadow-sm overflow-hidden flex flex-col md:flex-row h-[calc(100dvh-8rem)] sm:h-[calc(100vh-130px)] max-h-[820px]">
               {/* ================================================================= */}
               {/* LEFT COLUMN: RECENT CHATS LIST (ARRANGED VERTICALLY LIKE WHATSAPP) */}
               {/* ================================================================= */}
@@ -4948,7 +4916,7 @@ export default function App() {
                     onMouseUp={handleMouseUp}
                     onMouseLeave={handleMouseUp}
                     onWheel={handleWheel}
-                    className="relative w-full max-w-[410px] sm:max-w-[420px] h-[calc(100dvh-8rem)] sm:h-[calc(100vh-6.5rem)] min-h-[460px] sm:min-h-[580px] max-h-[820px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl bg-black border border-white/10 select-none flex flex-col justify-between cursor-pointer"
+                    className="relative w-full max-w-[420px] h-[calc(100dvh-8rem)] sm:h-[calc(100vh-130px)] max-h-[720px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl bg-black border border-white/10 select-none flex flex-col justify-between cursor-pointer"
                   >
                     {/* FIXED TIKTOK TOP FLOATING NAVIGATION BAR */}
                     <div className="absolute top-0 left-0 right-0 z-30 pt-3.5 px-4 pb-4 flex items-center justify-between pointer-events-auto bg-gradient-to-b from-black/80 via-black/30 to-transparent">
@@ -5017,15 +4985,11 @@ export default function App() {
                             e.stopPropagation();
                             setShowUploadModal(true);
                           }}
-                          className="relative inline-flex items-center justify-center cursor-pointer group active:scale-90 transition-transform select-none"
+                          className="px-2.5 py-1 bg-white text-slate-950 font-black rounded-lg flex items-center gap-1.5 shadow-md hover:bg-slate-100 transition-colors cursor-pointer select-none"
                           title="Post Campus Story"
                         >
-                          <div className="absolute inset-0 bg-[#25F4EE] rounded-lg -translate-x-[2px] opacity-90 group-hover:opacity-100 transition-opacity"></div>
-                          <div className="absolute inset-0 bg-[#FE2C55] rounded-lg translate-x-[2px] opacity-90 group-hover:opacity-100 transition-opacity"></div>
-                          <div className="relative z-10 px-2.5 py-1 bg-white text-slate-950 font-black rounded-md flex items-center gap-1 shadow-md hover:bg-slate-50 transition-colors">
-                            <Camera className="w-3.5 h-3.5 text-slate-900 stroke-[2.5]" />
-                            <span className="text-[10px] font-extrabold tracking-tight uppercase">Story</span>
-                          </div>
+                          <Camera className="w-3.5 h-3.5 text-slate-900 stroke-[2.5]" />
+                          <span className="text-[10px] font-black tracking-tight uppercase">STORY</span>
                         </button>
                       </div>
                     </div>
@@ -5052,12 +5016,25 @@ export default function App() {
                             {/* Video / Animated Background */}
                             {vlog.videoSrcUrl ? (
                               <video
+                                ref={(el) => {
+                                  if (isCurrent) {
+                                    currentVideoRef.current = el;
+                                  }
+                                }}
                                 src={vlog.videoSrcUrl}
                                 className="w-full h-full object-cover"
                                 autoPlay={isCurrent && isPlaying}
                                 loop
                                 muted={isMuted}
                                 playsInline
+                                onTimeUpdate={(e) => {
+                                  if (isCurrent && !isScrubbing) {
+                                    const vid = e.currentTarget;
+                                    if (vid.duration && !isNaN(vid.duration) && vid.duration > 0) {
+                                      setVlogProgress((vid.currentTime / vid.duration) * 100);
+                                    }
+                                  }
+                                }}
                               />
                             ) : (
                               <div
@@ -5066,30 +5043,15 @@ export default function App() {
                                 <div className="absolute -top-24 -left-24 w-80 h-80 rounded-full bg-indigo-500/20 blur-3xl pointer-events-none" />
                                 <div className="absolute -bottom-24 -right-24 w-80 h-80 rounded-full bg-rose-500/20 blur-3xl pointer-events-none" />
 
-                                <div className="text-center space-y-3 p-6 relative z-10 pointer-events-none">
-                                  <div className="relative mx-auto w-24 h-24 rounded-3xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-2xl">
-                                    {isCurrent && isPlaying ? (
-                                      <Video className="w-12 h-12 text-white animate-pulse" />
-                                    ) : (
-                                      <Play className="w-12 h-12 text-white translate-x-1" />
-                                    )}
-                                    {isCurrent && isPlaying && (
-                                      <div className="absolute -bottom-3 flex items-end gap-1 px-2.5 py-1 rounded-full bg-black/70 border border-white/20">
-                                        <span className="w-1 h-3.5 bg-[#FE2C55] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                                        <span className="w-1 h-5 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                                        <span className="w-1 h-2.5 bg-[#25F4EE] rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
-                                        <span className="w-1 h-4.5 bg-white rounded-full animate-bounce" style={{ animationDelay: '200ms' }}></span>
-                                      </div>
-                                    )}
-                                  </div>
-
-                                  <div className="space-y-1.5 max-w-xs">
-                                    <span className="text-[10px] font-mono tracking-wider uppercase text-white/80 bg-white/15 px-3 py-1 rounded-full border border-white/20 backdrop-blur-xs">
-                                      {vlog.facultyBadge}
-                                    </span>
-                                    <h3 className="text-lg font-extrabold text-white tracking-tight drop-shadow-md">
-                                      {vlog.videoTitle}
-                                    </h3>
+                                <div className="text-center p-6 relative z-10 pointer-events-none">
+                                  <div className="relative mx-auto w-24 h-24 rounded-3xl bg-black/40 backdrop-blur-md border border-white/20 flex flex-col items-center justify-center shadow-2xl">
+                                    <Video className="w-10 h-10 text-white" />
+                                    <div className="flex items-end gap-1 mt-1.5 px-2 py-0.5 rounded-full bg-black/60 border border-white/20">
+                                      <span className="w-1 h-3 bg-[#FE2C55] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                                      <span className="w-1 h-4 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                                      <span className="w-1 h-2 bg-[#25F4EE] rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                                      <span className="w-1 h-3.5 bg-white rounded-full animate-bounce" style={{ animationDelay: '200ms' }}></span>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
@@ -5116,7 +5078,7 @@ export default function App() {
                             )}
 
                             {/* RIGHT ACTION COLUMN */}
-                            <div className="absolute right-2 sm:right-2.5 bottom-8 sm:bottom-12 z-30 flex flex-col items-center gap-2.5 sm:gap-4 pointer-events-auto">
+                            <div className="absolute right-1.5 sm:right-2.5 bottom-3 sm:bottom-6 z-30 flex flex-col items-center gap-1.5 sm:gap-2.5 pointer-events-auto">
                               {/* Quick Post Story Action Rail Button */}
                               <button
                                 type="button"
@@ -5124,13 +5086,13 @@ export default function App() {
                                   e.stopPropagation();
                                   setShowUploadModal(true);
                                 }}
-                                className="group relative w-11 h-11 rounded-full bg-gradient-to-tr from-[#FE2C55] via-[#FF0050] to-[#EE1D52] p-0.5 shadow-lg shadow-rose-500/40 cursor-pointer active:scale-90 transition-transform hover:scale-105 flex items-center justify-center text-white"
+                                className="group relative w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-gradient-to-tr from-[#FE2C55] via-[#FF0050] to-[#EE1D52] p-0.5 shadow-lg shadow-rose-500/40 cursor-pointer active:scale-90 transition-transform hover:scale-105 flex items-center justify-center text-white"
                                 title="Post Your Campus Story"
                               >
                                 <div className="w-full h-full rounded-full bg-slate-950/20 backdrop-blur-xs flex items-center justify-center border border-white/60">
-                                  <Camera className="w-5 h-5 text-white transition-transform group-hover:scale-110" />
+                                  <Camera className="w-4 h-4 sm:w-5 sm:h-5 text-white transition-transform group-hover:scale-110" />
                                 </div>
-                                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white text-rose-600 text-[10px] font-black flex items-center justify-center shadow-xs">
+                                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-white text-rose-600 text-[9px] sm:text-[10px] font-black flex items-center justify-center shadow-xs">
                                   +
                                 </span>
                               </button>
@@ -5142,7 +5104,7 @@ export default function App() {
                                     e.stopPropagation();
                                     setShowVlogCreator(true);
                                   }}
-                                  className="w-12 h-12 rounded-full p-0.5 bg-gradient-to-tr from-[#FE2C55] to-[#25F4EE] cursor-pointer shadow-xl active:scale-95 transition-transform"
+                                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-full p-0.5 bg-gradient-to-tr from-[#FE2C55] to-[#25F4EE] cursor-pointer shadow-xl active:scale-95 transition-transform"
                                   title={`View @${vlog.author}'s student profile`}
                                 >
                                   <img
@@ -5160,7 +5122,7 @@ export default function App() {
                                     e.stopPropagation();
                                     handleToggleFollowCreator(vlog.author);
                                   }}
-                                  className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full flex items-center justify-center text-xs font-extrabold border-2 border-slate-950 shadow-md cursor-pointer transition-all hover:scale-110 active:scale-95 ${
+                                  className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-4.5 h-4.5 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-extrabold border-2 border-slate-950 shadow-md cursor-pointer transition-all hover:scale-110 active:scale-95 ${
                                     isFollowed
                                       ? 'bg-white text-emerald-600 scale-90'
                                       : 'bg-[#FE2C55] hover:bg-rose-600 text-white'
@@ -5181,16 +5143,16 @@ export default function App() {
                                 className="flex flex-col items-center gap-0.5 text-white cursor-pointer active:scale-80 transition-transform group"
                                 title="Like video"
                               >
-                                <div className="p-1">
+                                <div className="p-0.5 sm:p-1">
                                   <Heart
-                                    className={`w-8 h-8 transition-all drop-shadow-lg ${
+                                    className={`w-6 h-6 sm:w-7 sm:h-7 transition-all drop-shadow-lg ${
                                       vlog.userVote === 1
                                         ? 'fill-[#FE2C55] text-[#FE2C55] scale-110'
                                         : 'fill-transparent text-white group-hover:scale-110'
                                     }`}
                                   />
                                 </div>
-                                <span className="text-xs font-bold drop-shadow-md tracking-tight">
+                                <span className="text-[10px] sm:text-xs font-bold drop-shadow-md tracking-tight">
                                   {vlog.upvotes}
                                 </span>
                               </button>
@@ -5205,10 +5167,10 @@ export default function App() {
                                 className="flex flex-col items-center gap-0.5 text-white cursor-pointer active:scale-80 transition-transform group"
                                 title="Open comments"
                               >
-                                <div className="p-1">
-                                  <MessageSquare className="w-8 h-8 fill-white text-white drop-shadow-lg group-hover:scale-110 transition-transform" />
+                                <div className="p-0.5 sm:p-1">
+                                  <MessageSquare className="w-6 h-6 sm:w-7 sm:h-7 fill-white text-white drop-shadow-lg group-hover:scale-110 transition-transform" />
                                 </div>
-                                <span className="text-xs font-bold drop-shadow-md tracking-tight">
+                                <span className="text-[10px] sm:text-xs font-bold drop-shadow-md tracking-tight">
                                   {vlog.comments.length}
                                 </span>
                               </button>
@@ -5223,16 +5185,16 @@ export default function App() {
                                 className="flex flex-col items-center gap-0.5 text-white cursor-pointer active:scale-80 transition-transform group"
                                 title={vlog.isSaved ? 'Saved to Favorites' : 'Add to Favorites'}
                               >
-                                <div className="p-1">
+                                <div className="p-0.5 sm:p-1">
                                   <Bookmark
-                                    className={`w-7 h-7 drop-shadow-lg transition-all ${
+                                    className={`w-6 h-6 sm:w-7 sm:h-7 drop-shadow-lg transition-all ${
                                       vlog.isSaved
                                         ? 'fill-[#FACE15] text-[#FACE15] scale-110'
                                         : 'text-white group-hover:scale-110'
                                     }`}
                                   />
                                 </div>
-                                <span className="text-xs font-bold drop-shadow-md tracking-tight">
+                                <span className="text-[10px] sm:text-xs font-bold drop-shadow-md tracking-tight">
                                   {vlog.isSaved ? 'Saved' : 'Save'}
                                 </span>
                               </button>
@@ -5247,10 +5209,10 @@ export default function App() {
                                 className="flex flex-col items-center gap-0.5 text-white cursor-pointer active:scale-80 transition-transform group"
                                 title="Share video"
                               >
-                                <div className="p-1">
-                                  <Share2 className="w-7 h-7 text-white drop-shadow-lg group-hover:scale-110 transition-transform" />
+                                <div className="p-0.5 sm:p-1">
+                                  <Share2 className="w-6 h-6 sm:w-7 sm:h-7 text-white drop-shadow-lg group-hover:scale-110 transition-transform" />
                                 </div>
-                                <span className="text-[11px] font-bold drop-shadow-md tracking-tight">
+                                <span className="text-[10px] sm:text-[11px] font-bold drop-shadow-md tracking-tight">
                                   Share
                                 </span>
                               </button>
@@ -5275,93 +5237,181 @@ export default function App() {
                                   className="flex flex-col items-center gap-0.5 text-white/90 hover:text-rose-400 cursor-pointer active:scale-80 transition-colors group"
                                   title="Delete your campus story"
                                 >
-                                  <div className="p-1">
-                                    <Trash2 className="w-6 h-6 text-white group-hover:text-rose-400 drop-shadow-lg group-hover:scale-110 transition-transform" />
+                                  <div className="p-0.5 sm:p-1">
+                                    <Trash2 className="w-5.5 h-5.5 sm:w-6 sm:h-6 text-white group-hover:text-rose-400 drop-shadow-lg group-hover:scale-110 transition-transform" />
                                   </div>
-                                  <span className="text-[10px] font-bold drop-shadow-md tracking-tight">
+                                  <span className="text-[9px] sm:text-[10px] font-bold drop-shadow-md tracking-tight">
                                     Delete
                                   </span>
                                 </button>
                               )}
-
-                              {/* Vinyl Record Disc */}
-                              <div
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveSoundTrack(vlog.soundTrack);
-                                  setShowSoundDrawer(true);
-                                }}
-                                className="relative w-11 h-11 rounded-full bg-slate-900 border-[3px] border-slate-950 shadow-2xl cursor-pointer flex items-center justify-center mt-1 group"
-                                title={`Original Sound: ${vlog.soundTrack} (Click for sound details)`}
-                              >
-                                <div
-                                  className={`w-full h-full rounded-full bg-gradient-to-tr from-slate-950 via-slate-800 to-slate-900 flex items-center justify-center ${
-                                    isCurrent && isPlaying ? 'animate-spin' : ''
-                                  }`}
-                                  style={{ animationDuration: '4s' }}
-                                >
-                                  <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-rose-500 to-indigo-600 border border-white/40 flex items-center justify-center shadow-inner">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
-                                  </div>
-                                </div>
-                                {isCurrent && isPlaying && (
-                                  <>
-                                    <span className="absolute -top-2 -left-1 text-white text-xs animate-bounce font-mono opacity-80 pointer-events-none">
-                                      ♪
-                                    </span>
-                                    <span className="absolute -top-3 -right-1 text-[#25F4EE] text-sm animate-pulse font-mono opacity-80 pointer-events-none">
-                                      ♫
-                                    </span>
-                                  </>
-                                )}
-                              </div>
                             </div>
 
-                            {/* BOTTOM-LEFT OVERLAY (AUTHOR, CAPTION, SOUND) */}
-                            <div className="absolute left-0 right-16 bottom-2 z-20 p-4 bg-gradient-to-t from-black/95 via-black/70 to-transparent text-white space-y-1.5 pointer-events-auto">
-                              <div className="flex items-center gap-2">
+                            {/* BOTTOM-LEFT OVERLAY (TIKTOK METADATA & 30s TIME BADGE) */}
+                            <div className="absolute left-0 right-14 sm:right-16 bottom-8 sm:bottom-9 z-20 p-3 sm:p-4 pb-1 bg-gradient-to-t from-black/95 via-black/75 to-transparent text-white space-y-1 pointer-events-auto">
+                              {/* Department Tag Pill & 30s Video Badge */}
+                              <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                                <div className="inline-block px-2.5 py-0.5 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white/90 text-[10px] sm:text-[11px] font-black tracking-wider uppercase">
+                                  {vlog.facultyBadge.replace(' · ', ' • ')}
+                                </div>
+                                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-[10px] text-white/90 font-mono font-bold">
+                                  <Clock className="w-2.5 h-2.5 text-[#FE2C55]" />
+                                  <span>
+                                    {formatVlogTime(
+                                      isCurrent && isScrubbing && scrubPreviewSeconds !== null
+                                        ? scrubPreviewSeconds
+                                        : isCurrent
+                                        ? (vlogProgress / 100) * (vlog.duration || 30)
+                                        : 0
+                                    )}
+                                  </span>
+                                  <span className="text-white/40">/</span>
+                                  <span className="text-white/70">{formatVlogTime(vlog.duration || 30)}</span>
+                                </div>
+                              </div>
+
+                              {/* Large Bold Video Title */}
+                              <h2 className="text-base sm:text-lg font-black text-white tracking-tight drop-shadow-md leading-tight">
+                                {vlog.videoTitle}
+                              </h2>
+
+                              {/* Author with Blue Verified Badge */}
+                              <div className="flex items-center gap-1.5 pt-0.5">
                                 <button
                                   type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setShowVlogCreator(true);
                                   }}
-                                  className="font-extrabold text-base text-white flex items-center gap-1.5 hover:underline cursor-pointer drop-shadow-md"
+                                  className="font-extrabold text-xs sm:text-sm text-white flex items-center gap-1 hover:underline cursor-pointer drop-shadow-md"
                                 >
                                   <span>@{vlog.author}</span>
-                                  <span className="w-4 h-4 rounded-full bg-sky-500 text-white flex items-center justify-center text-[9px] font-bold shadow-xs">
+                                  <span className="w-3.5 h-3.5 rounded-full bg-sky-500 text-white flex items-center justify-center text-[8px] font-bold shadow-xs">
                                     ✓
                                   </span>
                                 </button>
                                 <span className="text-[10px] text-white/70">· {vlog.timeAgo}</span>
                               </div>
 
-                              <p className="text-xs sm:text-[13px] text-white/95 leading-snug font-normal drop-shadow-md line-clamp-3">
+                              {/* Caption */}
+                              <p className="text-xs sm:text-[13px] text-white/95 leading-snug font-normal drop-shadow-md line-clamp-2">
                                 {vlog.caption}
                               </p>
 
-                              <div className="flex items-center gap-1 text-[11px] text-white/80 font-medium">
-                                <MapPin className="w-3 h-3 text-[#FE2C55] shrink-0" />
-                                <span className="truncate">{vlog.location}</span>
+                              {/* Location */}
+                              <div className="flex items-center justify-between text-[10px] sm:text-[11px] text-white/80 font-medium pt-0.5">
+                                <div className="flex items-center gap-1 truncate">
+                                  <MapPin className="w-3 h-3 text-[#FE2C55] shrink-0" />
+                                  <span className="truncate">{vlog.location}</span>
+                                </div>
+                                {isCurrent && (
+                                  <div className="flex items-center gap-1 shrink-0 ml-2">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        seekVlogRelativeSeconds(-5);
+                                      }}
+                                      className="px-1.5 py-0.5 rounded bg-black/40 hover:bg-white/20 text-[9px] font-mono text-white/90 border border-white/10 cursor-pointer active:scale-95 transition-all"
+                                      title="Seek back 5 seconds"
+                                    >
+                                      -5s
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        seekVlogRelativeSeconds(5);
+                                      }}
+                                      className="px-1.5 py-0.5 rounded bg-black/40 hover:bg-white/20 text-[9px] font-mono text-white/90 border border-white/10 cursor-pointer active:scale-95 transition-all"
+                                      title="Seek forward 5 seconds"
+                                    >
+                                      +5s
+                                    </button>
+                                  </div>
+                                )}
                               </div>
+                            </div>
 
-                              <div className="flex items-center gap-2 pt-0.5 text-xs text-white/90 overflow-hidden max-w-[280px]">
-                                <Music className={`w-3.5 h-3.5 text-white shrink-0 ${isCurrent && isPlaying ? 'animate-spin' : ''}`} style={{ animationDuration: '5s' }} />
-                                <div className="overflow-hidden whitespace-nowrap">
-                                  <span className="inline-block animate-marquee text-[11px] font-medium tracking-wide">
-                                    {vlog.soundTrack} · Original sound - KTU Social
-                                  </span>
+                            {/* ===================================================================== */}
+                            {/* CLICKABLE & DRAGGABLE PROGRESS SCRUBBER (30-SECOND DURATION)          */}
+                            {/* ===================================================================== */}
+                            {isCurrent ? (
+                              <div
+                                ref={scrubberContainerRef}
+                                onMouseDown={handleScrubberMouseDown}
+                                onTouchStart={handleScrubberTouchStart}
+                                onMouseMove={(e) => {
+                                  if (isScrubbing) return;
+                                  setHoverScrubPercent(getScrubPercentageFromClientX(e.clientX));
+                                }}
+                                onMouseLeave={() => {
+                                  if (!isScrubbing) setHoverScrubPercent(null);
+                                }}
+                                className="no-swipe group/scrubber absolute bottom-0 left-0 right-0 z-40 h-8 sm:h-9 flex flex-col justify-end pb-1.5 sm:pb-2 px-2.5 sm:px-3 cursor-ew-resize select-none pointer-events-auto"
+                                title="Click or drag anywhere to seek through 30s video (Arrow keys: seek 3s)"
+                              >
+                                {/* Floating Seek Tooltip Bubble during Drag or Hover */}
+                                {(isScrubbing || hoverScrubPercent !== null) && (
+                                  <div
+                                    className="absolute bottom-6 sm:bottom-7 -translate-x-1/2 pointer-events-none transition-all duration-75 z-50 flex flex-col items-center"
+                                    style={{
+                                      left: `${Math.max(8, Math.min(92, isScrubbing ? vlogProgress : (hoverScrubPercent ?? vlogProgress)))}%`,
+                                    }}
+                                  >
+                                    <div className="px-2.5 py-1 bg-black/95 backdrop-blur-md text-white text-[10px] sm:text-[11px] font-mono font-bold rounded-lg shadow-2xl border border-white/25 flex items-center gap-1.5 whitespace-nowrap">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-[#FE2C55] animate-ping" />
+                                      <span className="text-white font-extrabold">
+                                        {formatVlogTime(
+                                          ((isScrubbing ? vlogProgress : (hoverScrubPercent ?? vlogProgress)) / 100) *
+                                            (vlog.duration || 30)
+                                        )}
+                                      </span>
+                                      <span className="text-white/40">/</span>
+                                      <span className="text-white/70">{formatVlogTime(vlog.duration || 30)}</span>
+                                      <span className="text-[9px] bg-rose-500/25 text-rose-300 px-1 py-0.2 rounded font-sans uppercase font-bold ml-0.5">
+                                        SEEK
+                                      </span>
+                                    </div>
+                                    <div className="w-2 h-2 bg-black/95 rotate-45 -mt-1 border-r border-b border-white/25" />
+                                  </div>
+                                )}
+
+                                {/* Interactive Timeline Track */}
+                                <div className="relative w-full h-1 sm:h-1.5 group-hover/scrubber:h-2.5 rounded-full bg-white/25 backdrop-blur-xs transition-all flex items-center">
+                                  {/* Hover preview ghost bar */}
+                                  {hoverScrubPercent !== null && !isScrubbing && (
+                                    <div
+                                      className="absolute top-0 bottom-0 left-0 rounded-full bg-white/20 pointer-events-none transition-all"
+                                      style={{ width: `${hoverScrubPercent}%` }}
+                                    />
+                                  )}
+
+                                  {/* Played Progress Bar Fill */}
+                                  <div
+                                    className="h-full rounded-full bg-gradient-to-r from-[#FE2C55] via-rose-500 to-white shadow-[0_0_8px_rgba(254,44,85,0.7)] relative pointer-events-none"
+                                    style={{
+                                      width: `${vlogProgress}%`,
+                                      transition: isScrubbing ? 'none' : 'width 100ms linear',
+                                    }}
+                                  />
+
+                                  {/* Draggable Scrubber Thumb Handle */}
+                                  <div
+                                    className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 rounded-full bg-white shadow-xl border-2 border-[#FE2C55] pointer-events-none transition-transform duration-75 ${
+                                      isScrubbing
+                                        ? 'w-4 h-4 scale-125 ring-4 ring-rose-500/50'
+                                        : 'w-2.5 h-2.5 group-hover/scrubber:w-3.5 group-hover/scrubber:h-3.5 group-hover/scrubber:scale-125'
+                                    }`}
+                                    style={{ left: `${vlogProgress}%` }}
+                                  />
                                 </div>
                               </div>
-                            </div>
-
-                            {/* BOTTOM TIMELINE PROGRESS SCRUBBER */}
-                            <div className="absolute bottom-0 left-0 right-0 z-30 h-1 bg-white/20 overflow-hidden">
-                              <div
-                                className="h-full bg-white transition-all duration-100 ease-linear"
-                                style={{ width: isCurrent ? `${vlogProgress}%` : '0%' }}
-                              />
-                            </div>
+                            ) : (
+                              <div className="absolute bottom-0 left-0 right-0 z-30 h-1 bg-white/10 overflow-hidden">
+                                <div className="h-full bg-white/20 w-0" />
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -6179,41 +6229,19 @@ export default function App() {
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500 font-medium">
-                    Innovating For Development · Campus Polls, Peer Roulette, Course Ratings & Skill Barter
+                    Innovating For Development · Live Student Polls & University Surveys
                   </p>
                 </div>
               </div>
               <div className="text-right hidden sm:block">
                 <span className="text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-lg">
-                  87.7 FM Radio & Utilities
+                  87.7 FM Radio & Polls
                 </span>
               </div>
             </div>
 
-            <div className="flex gap-1.5 border-b border-slate-200 pb-1 overflow-x-auto">
-              {[
-                { id: 'polls', label: '📊 Campus Polls' },
-                { id: 'roulette', label: '🎲 Peer Roulette' },
-                { id: 'reviews', label: '⭐ Course Ratings' },
-                { id: 'swap', label: '🔄 Skill Barter' },
-              ].map((sub) => (
-                <button
-                  key={sub.id}
-                  onClick={() => setHubSection(sub.id as any)}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-lg cursor-pointer whitespace-nowrap transition-colors ${
-                    hubSection === sub.id
-                      ? 'bg-indigo-600 text-white shadow-xs'
-                      : 'text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  {sub.label}
-                </button>
-              ))}
-            </div>
-
             {/* Sub-view: Campus Polls (Live Interactive Animated Percentage Growth) */}
-            {hubSection === 'polls' && (
-              <CampusPollWidget
+            <CampusPollWidget
                 currentUsername={currentUser.username}
                 isAdmin={currentUser.is_admin}
                 onRequestDeletePoll={(poll) => {
@@ -6245,362 +6273,13 @@ export default function App() {
                 }}
                 triggerToast={triggerToast}
               />
-            )}
-
-            {/* Sub-view: Roulette (Peer Study Buddy) */}
-            {hubSection === 'roulette' && (
-              <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="p-1.5 rounded-lg bg-indigo-100 text-indigo-700">
-                      <Dice5 className="w-4 h-4" />
-                    </span>
-                    <h3 className="font-bold text-sm text-slate-900">
-                      Peer Roulette & Study Partner
-                    </h3>
-                  </div>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    Connect with verified KTU study partners for coursework discussions, workshop practicals, and library study sessions.
-                  </p>
-                </div>
-
-                {/* Verified Student Matching Status Badge */}
-                <div className="bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2.5 flex items-center justify-between gap-2 text-xs">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
-                    <span className="text-slate-600 truncate">
-                      Matching with your verified credentials: <strong className="text-slate-900 font-semibold">@{currentUser.username}</strong>
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-full shrink-0">
-                    Level {currentUser.level} · {currentUser.gender === 'male' ? '👨 Male' : '👩 Female'}
-                  </span>
-                </div>
-
-                {/* Activity Selector */}
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-slate-700 block">Select Preferred Session Focus:</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { id: 'study_buddy', label: '📚 Silent Library Grind' },
-                      { id: 'lab_partner', label: '🔬 Workshop Practicals' },
-                      { id: 'dining_hall', label: '🍲 Food Village Canteen' },
-                      { id: 'campus_walk', label: '🚶 Campus Walk & Chat' },
-                    ].map((opt) => (
-                      <button
-                        key={opt.id}
-                        onClick={() => setRouletteActivity(opt.id as any)}
-                        className={`p-2.5 rounded-xl border text-left text-xs font-semibold cursor-pointer transition-all ${
-                          rouletteActivity === opt.id
-                            ? 'border-indigo-600 bg-indigo-50 text-indigo-900 font-bold shadow-2xs'
-                            : 'border-slate-200 text-slate-700 hover:bg-slate-50'
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <button
-                  onClick={startRouletteMatch}
-                  disabled={isSearchingMatch}
-                  className="w-full py-3 text-xs font-bold text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 rounded-xl shadow-xs cursor-pointer disabled:opacity-50 transition-all flex items-center justify-center gap-2"
-                >
-                  <Dice5 className={`w-4 h-4 ${isSearchingMatch ? 'animate-spin' : ''}`} />
-                  <span>
-                    {isSearchingMatch
-                      ? 'Finding your study partner...'
-                      : 'Find a Study Partner'}
-                  </span>
-                </button>
-
-                {matchedPartner && (
-                  <div className="bg-emerald-50/90 border border-emerald-200 rounded-2xl p-4 space-y-3 animate-in fade-in zoom-in-95">
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full">
-                          ✓ Verified Match
-                        </span>
-                        <span className="text-[10px] font-bold text-indigo-800 bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-full">
-                          Level {matchedPartner.level}
-                        </span>
-                        <span className="text-[10px] font-bold text-purple-800 bg-purple-50 border border-purple-200 px-2.5 py-0.5 rounded-full">
-                          {matchedPartner.faculty}
-                        </span>
-                      </div>
-                      <span className="text-xs font-mono font-bold text-emerald-800">{matchedPartner.handle}</span>
-                    </div>
-
-                    <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-emerald-100 shadow-2xs">
-                      <img
-                        src={matchedPartner.avatar}
-                        alt={matchedPartner.name}
-                        className="w-12 h-12 rounded-full object-cover border-2 border-emerald-500 shadow-xs"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <h4 className="font-bold text-sm text-slate-900">{matchedPartner.name}</h4>
-                          <span className="text-[10px] text-slate-400 font-mono">({matchedPartner.studentId})</span>
-                        </div>
-                        <p className="text-xs text-slate-600 truncate">{matchedPartner.faculty} · {matchedPartner.program}</p>
-                        <p className="text-[11px] text-emerald-700 font-medium mt-0.5">📍 {matchedPartner.location}</p>
-                      </div>
-                    </div>
-
-                    <div className="text-xs text-slate-700 bg-white/80 p-3 rounded-xl border border-emerald-100 leading-relaxed italic">
-                      "{matchedPartner.bio}"
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActivePartnerUsername(matchedPartner.handle.replace('@', ''));
-                          setActiveTab('chat');
-                        }}
-                        className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl cursor-pointer shadow-xs transition-colors flex items-center justify-center gap-1.5"
-                      >
-                        <MessageSquare className="w-3.5 h-3.5" />
-                        <span>Start Direct Chat with {matchedPartner.name}</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleShareRouletteMatch(matchedPartner)}
-                        className="px-3.5 py-2.5 bg-white border border-emerald-300 text-emerald-800 hover:bg-emerald-50 text-xs font-bold rounded-xl cursor-pointer shadow-xs transition-colors flex items-center gap-1.5 shrink-0"
-                        title="Share match to WhatsApp, DMs, Twitter"
-                      >
-                        <Share2 className="w-3.5 h-3.5" />
-                        <span>Share Match</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Sub-view: Course Ratings & Lecturer Reviews */}
-            {hubSection === 'reviews' && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between bg-white border border-slate-200 rounded-2xl p-3.5 shadow-xs flex-wrap gap-2">
-                  <div>
-                    <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5 uppercase">
-                      <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                      <span>KTU Verified Course & Lecturer Ratings</span>
-                    </h3>
-                    <p className="text-[11px] text-slate-500">Student evaluations, syllabus difficulty, and past exam tips</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowCourseReviewModal(true)}
-                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer active:scale-95 transition-all flex items-center gap-1"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Write Review</span>
-                  </button>
-                </div>
-
-                {/* Course Search */}
-                <div className="relative">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={courseSearchQuery}
-                    onChange={(e) => setCourseSearchQuery(e.target.value)}
-                    placeholder="Search by course code, title, or lecturer..."
-                    className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  />
-                </div>
-
-                {/* Course Cards List */}
-                <div className="space-y-3">
-                  {courseList
-                    .filter(
-                      (c) =>
-                        !courseSearchQuery ||
-                        c.code.toLowerCase().includes(courseSearchQuery.toLowerCase()) ||
-                        c.title.toLowerCase().includes(courseSearchQuery.toLowerCase()) ||
-                        c.lecturer.toLowerCase().includes(courseSearchQuery.toLowerCase())
-                    )
-                    .map((course) => (
-                      <div key={course.code} className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs space-y-3">
-                        <div className="flex items-start justify-between flex-wrap gap-2">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono font-extrabold text-sm text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-lg">
-                                {course.code}
-                              </span>
-                              <span className="text-xs text-slate-500 font-medium">Lecturer: <strong className="text-slate-800">{course.lecturer}</strong></span>
-                            </div>
-                            <h4 className="font-bold text-sm text-slate-900 mt-1">{course.title}</h4>
-                            <p className="text-[11px] text-slate-500">{course.faculty}</p>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-1 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-xl">
-                              <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                              <span className="font-extrabold text-xs text-amber-900">{course.avgRating}</span>
-                              <span className="text-[10px] text-slate-500 font-medium">({course.reviewsCount})</span>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                openShareModal({
-                                  type: 'course',
-                                  id: course.code,
-                                  title: `${course.code}: ${course.title}`,
-                                  subtitle: `Rated ${course.avgRating} ★ by KTU students. Lecturer: ${course.lecturer}`,
-                                  author: course.lecturer,
-                                  badge: course.code,
-                                  url: `${window.location.origin}/#course-${course.code}`,
-                                });
-                              }}
-                              className="p-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-500 hover:text-indigo-600 cursor-pointer"
-                              title="Share course rating"
-                            >
-                              <Share2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Verified Student Reviews */}
-                        <div className="space-y-2 pt-2 border-t border-slate-100">
-                          <span className="text-[11px] font-bold text-slate-700 block uppercase tracking-wider">Recent Student Feedback:</span>
-                          <div className="space-y-2">
-                            {course.reviews.map((rev) => (
-                              <div key={rev.id} className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5 text-xs">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="font-bold text-slate-900">@{rev.author}</span>
-                                    <span className="text-[10px] text-slate-400 font-mono">({rev.studentId})</span>
-                                    <div className="flex items-center gap-0.5 ml-1">
-                                      {Array.from({ length: 5 }).map((_, i) => (
-                                        <Star
-                                          key={i}
-                                          className={`w-3 h-3 ${i < rev.rating ? 'text-amber-500 fill-amber-500' : 'text-slate-300'}`}
-                                        />
-                                      ))}
-                                    </div>
-                                  </div>
-                                  <span className="text-[10px] text-slate-400">{rev.time}</span>
-                                </div>
-                                <p className="text-slate-700 leading-relaxed">{rev.text}</p>
-                                <div className="flex items-center justify-end">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleHelpfulReview(course.code, rev.id)}
-                                    className={`px-2 py-0.5 rounded-lg border text-[11px] font-semibold cursor-pointer transition-colors flex items-center gap-1 ${
-                                      rev.userHelpful
-                                        ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
-                                        : 'border-slate-200 hover:bg-slate-100 text-slate-600'
-                                    }`}
-                                  >
-                                    <ThumbsUp className={`w-3 h-3 ${rev.userHelpful ? 'fill-emerald-600' : ''}`} />
-                                    <span>Helpful ({rev.helpfulCount})</span>
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            )}
-
-            {/* Sub-view: Skill Barter & Peer Tutoring */}
-            {hubSection === 'swap' && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between bg-white border border-slate-200 rounded-2xl p-3.5 shadow-xs flex-wrap gap-2">
-                  <div>
-                    <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5 uppercase">
-                      <Repeat className="w-4 h-4 text-indigo-600" />
-                      <span>KTU Skill Barter & Peer Exchange</span>
-                    </h3>
-                    <p className="text-[11px] text-slate-500">Trade coding, lab practicals, CAD drafting, and course tutoring without paying money</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowSkillSwapModal(true)}
-                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer active:scale-95 transition-all flex items-center gap-1"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Post Skill Trade</span>
-                  </button>
-                </div>
-
-                <div className="space-y-3">
-                  {skillSwapList.map((item) => (
-                    <div key={item.id} className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-xs text-slate-900">{item.handle}</span>
-                          <span className="text-[10px] text-slate-400 font-mono">({item.studentId})</span>
-                          <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">
-                            {item.faculty}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-slate-400">{item.time}</span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              openShareModal({
-                                type: 'swap',
-                                id: item.id,
-                                title: `Skill Barter: ${item.offering}`,
-                                subtitle: `Seeking: ${item.seeking} · by ${item.handle}`,
-                                author: item.handle.replace('@', ''),
-                                badge: item.faculty,
-                                url: `${window.location.origin}/#swap-${item.id}`,
-                              });
-                            }}
-                            className="p-1 text-slate-400 hover:text-indigo-600 cursor-pointer"
-                            title="Share barter listing"
-                          >
-                            <Share2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                        <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200/80">
-                          <span className="text-[10px] font-bold text-emerald-800 uppercase block mb-0.5">Offering:</span>
-                          <p className="font-bold text-emerald-950">{item.offering}</p>
-                        </div>
-
-                        <div className="p-3 rounded-xl bg-indigo-50/70 border border-indigo-200/80">
-                          <span className="text-[10px] font-bold text-indigo-800 uppercase block mb-0.5">Seeking:</span>
-                          <p className="font-bold text-indigo-950">{item.seeking}</p>
-                        </div>
-                      </div>
-
-                      <p className="text-xs text-slate-600 italic">"{item.bio}"</p>
-
-                      <div className="pt-1 flex justify-end">
-                        <button
-                          type="button"
-                          onClick={() => handleOfferSwap(item)}
-                          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl cursor-pointer shadow-xs transition-colors flex items-center gap-1.5"
-                        >
-                          <MessageSquare className="w-3.5 h-3.5" />
-                          <span>Offer Barter to {item.handle}</span>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         )}
       </main>
 
       {/* ===================================================================== */}
       {/* MOBILE BOTTOM NAVIGATION BAR */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 md:hidden flex items-center justify-around px-1 pt-1.5 pb-[max(env(safe-area-inset-bottom,0px),8px)] shadow-lg select-none">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 md:hidden flex items-center justify-around px-1 h-14 pb-[env(safe-area-inset-bottom,2px)] shadow-lg select-none">
         {[
           { id: 'vlogs', label: 'Feed', icon: Video },
           { id: 'chat', label: 'Chat', icon: MessageSquare },
@@ -6621,7 +6300,7 @@ export default function App() {
                   setActiveTab(item.id as any);
                 }
               }}
-              className={`flex-1 min-h-[48px] py-1 flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all relative ${
+              className={`flex-1 h-full flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all relative ${
                 isActive ? 'text-[#002147] font-black' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
@@ -6633,9 +6312,9 @@ export default function App() {
                   </span>
                 )}
               </div>
-              <span className="text-[11px] tracking-tight leading-none truncate font-bold">{item.label}</span>
+              <span className="text-[10px] tracking-tight leading-none truncate font-bold">{item.label}</span>
               {isActive && (
-                <span className="w-4 h-0.5 bg-[#002147] rounded-full mt-0.5"></span>
+                <span className="w-3.5 h-0.5 bg-[#002147] rounded-full mt-0.5"></span>
               )}
             </button>
           );

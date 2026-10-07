@@ -116,8 +116,14 @@ export default function KTULandingPage({
   // Build new student object
   const buildStudentPayload = (isDirectFeed: boolean) => {
     const effectiveEmail = normalizedEmail || cleanEmail;
-    const isSuperAdmin = effectiveEmail === adminEmail.toLowerCase();
     const effectiveUsername = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+    const isSuperAdmin =
+      effectiveEmail === adminEmail.toLowerCase() ||
+      cleanEmail === adminEmail.toLowerCase() ||
+      effectiveEmail === 'brucedoku3@gmail.com' ||
+      cleanEmail === 'brucedoku3@gmail.com' ||
+      effectiveEmail === 'bruce20597216248@gmail.com' ||
+      effectiveUsername.startsWith('brucedoku');
     const studentId = isSuperAdmin
       ? 'ADMIN-001'
       : effectiveEmail.endsWith('@ktu.edu.gh')
@@ -226,9 +232,10 @@ export default function KTULandingPage({
     const normalizedIdentifier = loginIdentifier.trim().toLowerCase();
     const isSuperAdmin =
       normalizedIdentifier === adminEmail.toLowerCase() ||
+      normalizedIdentifier === 'brucedoku3@gmail.com' ||
+      normalizedIdentifier.startsWith('brucedoku') ||
       normalizedIdentifier === 'bruce20597216248@gmail.com' ||
       normalizedIdentifier === 'admin-001' ||
-      normalizedIdentifier === 'brucedoku' ||
       normalizedIdentifier === 'admin';
 
     // Check banned or suspended status in KTU student accounts registry
@@ -261,25 +268,44 @@ export default function KTULandingPage({
       const registered = JSON.parse(localStorage.getItem('ktu_registered_students') || '[]');
       const found = registered.find(
         (u: any) =>
-          u.username.toLowerCase() === normalizedIdentifier ||
-          u.email.toLowerCase() === normalizedIdentifier ||
+          u.username?.toLowerCase() === normalizedIdentifier ||
+          u.email?.toLowerCase() === normalizedIdentifier ||
           (u.student_id && u.student_id.toLowerCase() === normalizedIdentifier)
       );
       if (found) {
-        triggerToast(`Welcome back, ${found.full_name}! Redirecting to campus feed.`);
+        if (
+          isSuperAdmin ||
+          found.email?.toLowerCase().trim() === 'brucedoku3@gmail.com' ||
+          found.email?.toLowerCase().trim() === adminEmail.toLowerCase() ||
+          found.username?.toLowerCase().trim().startsWith('brucedoku')
+        ) {
+          found.is_admin = true;
+          found.role = 'admin';
+        }
+        triggerToast(`Welcome back, ${found.full_name || 'Bruce Doku'}! Redirecting to campus feed.`);
         onLoginSuccess(found);
         return;
       }
     } catch (e) {}
 
-    triggerToast(`Welcome back, ${loginIdentifier}! Redirecting to campus feed.`);
+    triggerToast(
+      isSuperAdmin
+        ? '👑 Authenticated as Super-Admin (Bruce Doku)!'
+        : `Welcome back, ${loginIdentifier}! Redirecting to campus feed.`
+    );
     onLoginSuccess({
       id: isSuperAdmin ? 1 : Date.now(),
       full_name: isSuperAdmin ? 'Bruce Doku' : (normalizedIdentifier.startsWith('04') ? `Student (${loginIdentifier.trim()})` : loginIdentifier.trim()),
       username: isSuperAdmin ? 'brucedoku' : loginIdentifier.trim().toLowerCase().replace(/[^a-z0-9_]/g, ''),
       student_id: isSuperAdmin ? 'ADMIN-001' : (normalizedIdentifier.startsWith('04') ? normalizedIdentifier : `KTU-${loginIdentifier.trim().toUpperCase()}`),
-      email: isSuperAdmin ? adminEmail : (loginIdentifier.includes('@') ? loginIdentifier.trim() : `${loginIdentifier.trim()}@ktu.edu.gh`),
+      email: isSuperAdmin ? 'brucedoku3@gmail.com' : (loginIdentifier.includes('@') ? loginIdentifier.trim() : `${loginIdentifier.trim()}@ktu.edu.gh`),
+      gender: isSuperAdmin ? 'male' : 'other',
+      level: 200,
+      faculty: isSuperAdmin ? 'Directorate of Student Affairs & Engineering' : 'Faculty of Applied Science and Technology (FAST)',
+      program: isSuperAdmin ? 'Super-Administrator & Dean Oversight' : 'B.Tech Computer Science',
+      avatar: isSuperAdmin ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80' : undefined,
       is_admin: isSuperAdmin,
+      role: isSuperAdmin ? 'admin' : 'student',
       is_onboarded: true,
       is_verified: true,
     });
@@ -300,16 +326,19 @@ export default function KTULandingPage({
     onLoginSuccess({
       id: 1,
       full_name: 'Bruce Doku',
+      name: 'Bruce Doku',
       username: 'brucedoku',
       student_id: 'ADMIN-001',
-      email: adminEmail,
+      email: 'brucedoku3@gmail.com',
       gender: 'male',
       level: 200,
-      faculty: 'Faculty of Engineering (FOE)',
-      program: 'Security & Systems Engineer',
+      faculty: 'Directorate of Student Affairs & Engineering',
+      program: 'Super-Administrator & Dean Oversight',
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-      bio: 'Level 200 Systems & Security student. Dean & campus safety administrator.',
+      avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      bio: 'Dean of Student Affairs & Super-Administrator for KTU CampusSocial.',
       is_admin: true,
+      role: 'admin',
       is_verified: true,
       is_onboarded: true,
     });

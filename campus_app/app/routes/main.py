@@ -22,3 +22,10 @@ def index():
         return redirect(url_for("feed.index"))
 
     return render_template("auth/register.html")
+
+
+@main_bp.route("/settings", methods=["GET", "POST"])
+def settings_redirect():
+    """Top-level /settings route redirecting to profile settings."""
+    return redirect(url_for("profile.settings"))
+

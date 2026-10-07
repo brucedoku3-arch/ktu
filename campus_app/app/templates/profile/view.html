@@ -45,9 +45,14 @@
       <!-- Contextual Action Buttons -->
       <div class="profile-actions">
         {% if is_self %}
-          <a href="{{ url_for('profile.edit_profile') }}" class="btn btn-secondary">
-            Edit Profile
-          </a>
+          <div class="action-btn-group" style="display: flex; gap: 8px;">
+            <a href="{{ url_for('profile.edit_profile') }}" class="btn btn-secondary">
+              <i class="bi bi-pencil-square"></i> Edit Profile
+            </a>
+            <a href="{{ url_for('profile.settings') }}" class="btn btn-secondary" title="Settings">
+              <i class="bi bi-gear-fill"></i> Settings
+            </a>
+          </div>
         {% elif current_user.is_authenticated %}
           <div class="action-btn-group">
             {% if is_blocked %}

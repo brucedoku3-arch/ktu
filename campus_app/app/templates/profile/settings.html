@@ -1,0 +1,660 @@
+{% extends "base.html" %}
+
+{% block title %}Settings · KTU CampusSocial{% endblock %}
+
+{% block extra_head %}
+<style>
+  .settings-container {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 16px 12px 64px 12px;
+  }
+
+  .settings-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--color-border, #e2e8f0);
+  }
+
+  .settings-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .settings-icon-badge {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: #eef2ff;
+    color: #4f46e5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+  }
+
+  .settings-title {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--color-text, #0f172a);
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  .settings-subtitle {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted, #64748b);
+    margin: 2px 0 0 0;
+  }
+
+  .settings-card {
+    background: var(--color-card-bg, #ffffff);
+    border: 1px solid var(--color-border, #e2e8f0);
+    border-radius: 14px;
+    padding: 18px 16px;
+    margin-bottom: 18px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+
+  .settings-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--color-border-subtle, #f1f5f9);
+  }
+
+  .settings-card-icon {
+    font-size: 1.15rem;
+    color: #4f46e5;
+  }
+
+  .settings-card-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-text, #0f172a);
+    margin: 0;
+  }
+
+  .settings-form-group {
+    margin-bottom: 14px;
+  }
+
+  .settings-label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text, #334155);
+    margin-bottom: 6px;
+  }
+
+  .settings-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--color-border, #cbd5e1);
+    font-size: 0.9375rem;
+    background: var(--color-input-bg, #ffffff);
+    color: var(--color-text, #0f172a);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    min-height: 44px;
+  }
+
+  .settings-input:focus {
+    outline: none;
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+  }
+
+  .settings-hint {
+    font-size: 0.775rem;
+    color: var(--color-text-muted, #64748b);
+    margin-top: 4px;
+    display: block;
+  }
+
+  /* Segmented radio options for Visibility */
+  .segmented-control {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    background: var(--color-bg-subtle, #f8fafc);
+    padding: 4px;
+    border-radius: 12px;
+    border: 1px solid var(--color-border, #e2e8f0);
+  }
+
+  .segmented-option {
+    position: relative;
+    cursor: pointer;
+  }
+
+  .segmented-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .segmented-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 8px;
+    border-radius: 10px;
+    text-align: center;
+    transition: all 0.15s ease;
+    border: 1.5px solid transparent;
+  }
+
+  .segmented-option input[type="radio"]:checked + .segmented-box {
+    background: #ffffff;
+    color: #4f46e5;
+    font-weight: 700;
+    border-color: #4f46e5;
+    box-shadow: 0 2px 5px rgba(79, 70, 229, 0.12);
+  }
+
+  .segmented-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .segmented-desc {
+    font-size: 0.725rem;
+    color: #64748b;
+    margin-top: 3px;
+  }
+
+  /* Toggle switches */
+  .switch-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--color-border-subtle, #f1f5f9);
+  }
+
+  .switch-row:last-child {
+    border-bottom: none;
+  }
+
+  .switch-info {
+    flex: 1;
+    padding-right: 12px;
+  }
+
+  .switch-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-text, #1e293b);
+    display: block;
+  }
+
+  .switch-subtext {
+    font-size: 0.775rem;
+    color: var(--color-text-muted, #64748b);
+  }
+
+  .toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 28px;
+    flex-shrink: 0;
+  }
+
+  .toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #cbd5e1;
+    transition: 0.25s;
+    border-radius: 34px;
+  }
+
+  .toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: 0.25s;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+
+  .toggle-switch input:checked + .toggle-slider {
+    background-color: #4f46e5;
+  }
+
+  .toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(20px);
+  }
+
+  /* Theme Selector */
+  .theme-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .theme-option {
+    cursor: pointer;
+    border: 2px solid var(--color-border, #cbd5e1);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--color-card-bg, #ffffff);
+    transition: all 0.15s ease;
+    user-select: none;
+  }
+
+  .theme-option.active {
+    border-color: #4f46e5;
+    background: #eef2ff;
+    color: #4f46e5;
+  }
+
+  .theme-icon {
+    font-size: 1.35rem;
+  }
+
+  .theme-text {
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+
+  /* Danger Zone */
+  .danger-card {
+    border-color: #fecaca;
+    background: #fff5f5;
+  }
+
+  .danger-card .settings-card-title,
+  .danger-card .settings-card-icon {
+    color: #dc2626;
+  }
+
+  .btn-danger-outline {
+    background: #ffffff;
+    border: 1.5px solid #ef4444;
+    color: #dc2626;
+    font-weight: 700;
+    padding: 12px 16px;
+    border-radius: 10px;
+    width: 100%;
+    font-size: 0.9375rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    transition: all 0.15s ease;
+  }
+
+  .btn-danger-outline:hover {
+    background: #dc2626;
+    color: #ffffff;
+  }
+
+  .btn-save-settings {
+    background: #4f46e5;
+    color: #ffffff;
+    border: none;
+    font-weight: 700;
+    padding: 14px 20px;
+    border-radius: 12px;
+    width: 100%;
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 48px;
+    transition: background 0.15s ease;
+  }
+
+  .btn-save-settings:hover {
+    background: #4338ca;
+  }
+
+  /* Modal Dialog for Deactivation Confirmation */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    box-sizing: border-box;
+  }
+
+  .modal-box {
+    background: #ffffff;
+    border-radius: 16px;
+    max-width: 420px;
+    width: 100%;
+    padding: 24px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="settings-container">
+  
+  <!-- Header with Gear Icon -->
+  <div class="settings-header">
+    <div class="settings-title-wrap">
+      <div class="settings-icon-badge">
+        <i class="bi bi-gear-fill"></i>
+      </div>
+      <div>
+        <h1 class="settings-title">⚙️ Settings</h1>
+        <p class="settings-subtitle">Manage student account, privacy, alerts & theme</p>
+      </div>
+    </div>
+    <a href="{{ url_for('profile.view_profile', username=user.username) }}" class="btn btn-secondary btn-sm" title="Back to profile">
+      <i class="bi bi-person"></i> Profile
+    </a>
+  </div>
+
+  <form method="POST" action="{{ url_for('profile.settings') }}" id="settingsForm">
+    <input type="hidden" name="action" value="save_all">
+
+    <!-- 1. ACCOUNT SETTINGS (Email & Password) -->
+    <section class="settings-card">
+      <div class="settings-card-header">
+        <i class="bi bi-person-badge settings-card-icon"></i>
+        <h2 class="settings-card-title">Account Settings</h2>
+      </div>
+
+      <div class="settings-form-group">
+        <label for="settingsEmail" class="settings-label">Official Campus Email</label>
+        <input
+          type="email"
+          id="settingsEmail"
+          name="email"
+          class="settings-input"
+          value="{{ user.email }}"
+          required
+          autocomplete="email"
+        >
+        <span class="settings-hint">Official KTU student domain (@ktu.edu.gh) required for institutional verification.</span>
+      </div>
+
+      <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--color-border-subtle, #f1f5f9);">
+        <span class="settings-label" style="margin-bottom: 10px;">Change Password</span>
+        
+        <div class="settings-form-group">
+          <input
+            type="password"
+            name="current_password"
+            placeholder="Current Password (leave blank if keeping)"
+            class="settings-input"
+            autocomplete="current-password"
+          >
+        </div>
+
+        <div class="settings-form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <input
+            type="password"
+            name="new_password"
+            placeholder="New Password (min 6 chars)"
+            class="settings-input"
+            autocomplete="new-password"
+          >
+          <input
+            type="password"
+            name="confirm_password"
+            placeholder="Confirm New Password"
+            class="settings-input"
+            autocomplete="new-password"
+          >
+        </div>
+        <span class="settings-hint">Leave password fields blank if you do not wish to change your password.</span>
+      </div>
+    </section>
+
+    <!-- 2. PROFILE VISIBILITY & PRIVACY -->
+    <section class="settings-card">
+      <div class="settings-card-header">
+        <i class="bi bi-shield-check settings-card-icon"></i>
+        <h2 class="settings-card-title">Profile Visibility & Privacy</h2>
+      </div>
+
+      <div class="segmented-control">
+        <label class="segmented-option">
+          <input
+            type="radio"
+            name="profile_visibility"
+            value="campus"
+            {% if (user.profile_visibility|default('campus')) == 'campus' %}checked{% endif %}
+          >
+          <div class="segmented-box">
+            <span class="segmented-title"><i class="bi bi-building"></i> Campus Only</span>
+            <span class="segmented-desc">Only authenticated KTU students can view full profile</span>
+          </div>
+        </label>
+
+        <label class="segmented-option">
+          <input
+            type="radio"
+            name="profile_visibility"
+            value="public"
+            {% if (user.profile_visibility|default('campus')) == 'public' %}checked{% endif %}
+          >
+          <div class="segmented-box">
+            <span class="segmented-title"><i class="bi bi-globe"></i> Public</span>
+            <span class="segmented-desc">Visible to all campus visitors and guest users</span>
+          </div>
+        </label>
+      </div>
+    </section>
+
+    <!-- 3. NOTIFICATION PREFERENCES -->
+    <section class="settings-card">
+      <div class="settings-card-header">
+        <i class="bi bi-bell settings-card-icon"></i>
+        <h2 class="settings-card-title">Notification Preferences</h2>
+      </div>
+
+      <input type="hidden" name="notifications_submitted" value="1">
+
+      <div class="switch-row">
+        <div class="switch-info">
+          <span class="switch-label">Email Notifications</span>
+          <span class="switch-subtext">Receive important campus announcements & account safety alerts via email.</span>
+        </div>
+        <label class="toggle-switch">
+          <input
+            type="checkbox"
+            name="notify_email"
+            value="1"
+            {% if user.notify_email|default(true) %}checked{% endif %}
+          >
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="switch-row">
+        <div class="switch-info">
+          <span class="switch-label">In-App Mentions & DM Alerts</span>
+          <span class="switch-subtext">Display toast banners when peers tag you in memes, halls, or direct messages.</span>
+        </div>
+        <label class="toggle-switch">
+          <input
+            type="checkbox"
+            name="notify_in_app"
+            value="1"
+            {% if user.notify_in_app|default(true) %}checked{% endif %}
+          >
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </section>
+
+    <!-- 4. THEME TOGGLE (LIGHT / DARK) -->
+    <section class="settings-card">
+      <div class="settings-card-header">
+        <i class="bi bi-palette settings-card-icon"></i>
+        <h2 class="settings-card-title">Theme Preference</h2>
+      </div>
+
+      <input type="hidden" name="theme_preference" id="themePreferenceInput" value="{{ user.theme_preference|default('light') }}">
+
+      <div class="theme-grid">
+        <div
+          class="theme-option {% if (user.theme_preference|default('light')) == 'light' %}active{% endif %}"
+          id="themeLightBtn"
+          onclick="selectTheme('light')"
+        >
+          <span class="theme-icon">☀️</span>
+          <div>
+            <div class="theme-text">Light Mode</div>
+            <span class="settings-hint" style="font-size: 0.725rem;">Clean KTU Institutional look</span>
+          </div>
+        </div>
+
+        <div
+          class="theme-option {% if (user.theme_preference|default('light')) == 'dark' %}active{% endif %}"
+          id="themeDarkBtn"
+          onclick="selectTheme('dark')"
+        >
+          <span class="theme-icon">🌙</span>
+          <div>
+            <div class="theme-text">Dark Mode</div>
+            <span class="settings-hint" style="font-size: 0.725rem;">OLED night-friendly palette</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Save Settings Button -->
+    <div style="margin-bottom: 24px;">
+      <button type="submit" class="btn-save-settings">
+        <i class="bi bi-check2-circle"></i> Save Settings
+      </button>
+    </div>
+  </form>
+
+  <!-- 5. DELETE / DEACTIVATE ACCOUNT BUTTON -->
+  <section class="settings-card danger-card">
+    <div class="settings-card-header">
+      <i class="bi bi-exclamation-triangle settings-card-icon"></i>
+      <h2 class="settings-card-title">Danger Zone</h2>
+    </div>
+
+    <p style="font-size: 0.85rem; color: #7f1d1d; margin: 0 0 14px 0;">
+      Deactivating your student profile immediately conceals your posts, removes you from public searches, and logs you out of KTU CampusSocial.
+    </p>
+
+    <button
+      type="button"
+      class="btn-danger-outline"
+      onclick="document.getElementById('deactivateModal').style.display='flex';"
+    >
+      <i class="bi bi-person-x"></i> Deactivate / Delete Account
+    </button>
+  </section>
+
+</div>
+
+<!-- Modal confirmation for Account Deactivation -->
+<div id="deactivateModal" class="modal-overlay">
+  <div class="modal-box">
+    <h3 style="margin-top: 0; color: #b91c1c; font-size: 1.15rem; font-weight: 800;">
+      ⚠️ Deactivate Account?
+    </h3>
+    <p style="font-size: 0.875rem; color: #475569; line-height: 1.5;">
+      Are you sure you want to deactivate your KTU CampusSocial account (@{{ user.username }})?
+      Your sessions will be terminated and your profile will be hidden from campus feeds.
+    </p>
+    <div style="display: flex; gap: 10px; margin-top: 20px;">
+      <button
+        type="button"
+        class="btn btn-secondary"
+        style="flex: 1;"
+        onclick="document.getElementById('deactivateModal').style.display='none';"
+      >
+        Cancel
+      </button>
+      <form method="POST" action="{{ url_for('profile.settings') }}" style="flex: 1; margin: 0;">
+        <input type="hidden" name="action" value="deactivate">
+        <button
+          type="submit"
+          class="btn btn-danger"
+          style="width: 100%; min-height: 44px;"
+        >
+          Yes, Deactivate
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function selectTheme(mode) {
+    const themeInput = document.getElementById('themePreferenceInput');
+    const lightBtn = document.getElementById('themeLightBtn');
+    const darkBtn = document.getElementById('themeDarkBtn');
+
+    if (themeInput) themeInput.value = mode;
+
+    if (mode === 'dark') {
+      if (darkBtn) darkBtn.classList.add('active');
+      if (lightBtn) lightBtn.classList.remove('active');
+      document.documentElement.setAttribute('data-theme', 'dark');
+      localStorage.setItem('ktu_theme', 'dark');
+    } else {
+      if (lightBtn) lightBtn.classList.add('active');
+      if (darkBtn) darkBtn.classList.remove('active');
+      document.documentElement.removeAttribute('data-theme');
+      localStorage.setItem('ktu_theme', 'light');
+    }
+  }
+
+  // Sync client theme immediately on load
+  (function() {
+    const saved = localStorage.getItem('ktu_theme') || '{{ user.theme_preference|default("light") }}';
+    if (saved === 'dark') {
+      selectTheme('dark');
+    }
+  })();
+</script>
+{% endblock %}

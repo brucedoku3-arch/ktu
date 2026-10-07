@@ -93,8 +93,8 @@ export default function CampusBroadcastBanner({
       label: 'ACADEMIC & CAMPUS ADVISORY',
     },
     official: {
-      bg: 'bg-indigo-900',
-      border: 'border-indigo-950',
+      bg: 'bg-[#181a42]',
+      border: 'border-[#101230]',
       text: 'text-white',
       badge: 'bg-amber-400 text-slate-950',
       icon: Shield,

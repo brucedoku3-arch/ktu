@@ -181,10 +181,19 @@ export default function StudentOnboardingFlow({
       return;
     }
 
+    const isSuperAdmin =
+      email.trim().toLowerCase() === ADMIN_OVERRIDE.toLowerCase() ||
+      email.trim().toLowerCase() === 'brucedoku3@gmail.com' ||
+      email.trim().toLowerCase().startsWith('brucedoku') ||
+      username.trim().toLowerCase().startsWith('brucedoku') ||
+      email.trim().toLowerCase() === 'bruce20597216248@gmail.com' ||
+      !!currentUser?.is_admin;
+
     const updated = {
       ...currentUser,
       full_name: fullName,
-      username: username,
+      name: fullName,
+      username: username.replace('@', ''),
       email: email,
       gender: gender,
       level: parseInt(level) as 100 | 200 | 300 | 400,
@@ -194,6 +203,8 @@ export default function StudentOnboardingFlow({
       bio: bio,
       is_onboarded: true,
       is_verified: true,
+      is_admin: isSuperAdmin,
+      role: isSuperAdmin ? 'admin' : (currentUser?.role || 'student'),
     };
 
     onUpdateCurrentUser(updated);

@@ -18,7 +18,6 @@ from app import db
 from app.models.user import User
 from app.models.post import Post
 from app.models.vlog import Vlog
-from app.models.academic import CourseReview
 from app.models.culture import AuxSubmission, AuxBattle
 from app.models.moderation import Report, ModLog
 from app.models.message import Message
@@ -124,10 +123,6 @@ def submit_report():
             reported_user_id = target_obj.user_id
     elif target_type == "vlog":
         target_obj = Vlog.query.get(target_id)
-        if target_obj:
-            reported_user_id = target_obj.user_id
-    elif target_type == "review":
-        target_obj = CourseReview.query.get(target_id)
         if target_obj:
             reported_user_id = target_obj.user_id
     elif target_type == "aux_submission":
@@ -239,7 +234,6 @@ def dashboard():
     total_posts_count = Post.query.count()
     total_vlogs_count = Vlog.query.count()
     total_aux_count = AuxSubmission.query.count()
-    total_reviews_count = CourseReview.query.count()
 
     flagged_posts_count = Post.query.filter_by(is_flagged=True).count()
     flagged_vlogs_count = Vlog.query.filter_by(is_flagged=True).count()
@@ -284,19 +278,6 @@ def dashboard():
                         "username": v.author.username,
                         "email": v.author.email,
                         "is_anonymous": False,
-                    }
-        elif rep.target_type == "review":
-            r = CourseReview.query.get(rep.target_id)
-            if r:
-                target_preview = f"{r.course_code}: {r.review_text[:100]}..."
-                category_label = "Course Review"
-                if r.author:
-                    true_author = {
-                        "id": r.author.id,
-                        "student_id": r.author.student_id,
-                        "username": r.author.username,
-                        "email": r.author.email,
-                        "is_anonymous": r.is_anonymous,
                     }
         elif rep.target_type == "aux_submission":
             a = AuxSubmission.query.get(rep.target_id)
@@ -365,7 +346,6 @@ def dashboard():
             "total_memes": total_memes_count,
             "total_vlogs": total_vlogs_count,
             "total_aux": total_aux_count,
-            "total_reviews": total_reviews_count,
             "flagged_posts": flagged_posts_count,
             "flagged_vlogs": flagged_vlogs_count,
             "total_mod_actions": ModLog.query.count(),
@@ -573,18 +553,6 @@ def list_reports():
                         "email": p.author.email,
                         "is_anonymous_to_public": p.is_anonymous,
                     }
-        elif rep.target_type == "review":
-            r = CourseReview.query.get(rep.target_id)
-            if r:
-                preview = r.review_text
-                if r.author:
-                    true_author = {
-                        "user_id": r.author.id,
-                        "username": r.author.username,
-                        "student_id": r.author.student_id,
-                        "email": r.author.email,
-                        "is_anonymous_to_public": r.is_anonymous,
-                    }
         elif rep.target_type == "vlog":
             v = Vlog.query.get(rep.target_id)
             if v:
@@ -663,31 +631,6 @@ def inspect_report(report_id: int):
                     "is_suspended": post.author.is_suspended,
                     "is_banned": post.author.is_banned,
                     "is_anonymous_to_public": post.is_anonymous,
-                }
-
-    elif report.target_type == "review":
-        review = CourseReview.query.get(report.target_id)
-        if review:
-            target_data["exists"] = True
-            target_data["is_anonymous"] = bool(review.is_anonymous)
-            target_data["content_preview"] = review.review_text
-            target_data["details"] = {
-                "course_code": review.course_code,
-                "course_name": review.course_name,
-                "department": review.department,
-                "overall_rating": review.overall_rating,
-                "created_at": review.created_at.strftime("%b %d, %Y · %H:%M"),
-            }
-            if review.author:
-                target_data["real_author"] = {
-                    "id": review.author.id,
-                    "username": review.author.username,
-                    "student_id": review.author.student_id,
-                    "email": review.author.email,
-                    "karma_score": review.author.karma_score,
-                    "is_suspended": review.author.is_suspended,
-                    "is_banned": review.author.is_banned,
-                    "is_anonymous_to_public": review.is_anonymous,
                 }
 
     elif report.target_type == "vlog":
@@ -795,10 +738,6 @@ def handle_moderation_action():
             offending_user = target_entity.author
     elif target_type == "vlog":
         target_entity = Vlog.query.get(target_id)
-        if target_entity:
-            offending_user = target_entity.author
-    elif target_type == "review":
-        target_entity = CourseReview.query.get(target_id)
         if target_entity:
             offending_user = target_entity.author
     elif target_type == "aux_submission":

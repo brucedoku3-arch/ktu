@@ -444,16 +444,16 @@
     <div class="ktu-top-inner">
       <div class="ktu-top-links">
         <a href="{{ url_for('feed.index') }}" class="ktu-top-link">Campus Feed</a>
-        <a href="{{ url_for('auth.onboarding') }}" class="ktu-top-link">Apply / Onboarding</a>
         <a href="{{ url_for('utility.get_facilities') }}" class="ktu-top-link">Facility Status</a>
         <a href="{{ url_for('culture.aux_battle') }}" class="ktu-top-link">87.7 FM Aux</a>
+        <a href="{{ url_for('profile.settings') }}" class="ktu-top-link"><i class="bi bi-gear"></i> Settings</a>
       </div>
 
       <form action="{{ url_for('feed.index') }}" method="GET" class="ktu-search-form">
         <input
           type="search"
           name="q"
-          placeholder="Search campus notices, courses, brainrot, students..."
+          placeholder="Search campus notices, memes, vlogs, students..."
           class="ktu-search-input"
           aria-label="Search campus"
         >
@@ -502,18 +502,11 @@
             <a href="{{ url_for('messages.index') }}"><i class="bi bi-chat-dots"></i> Peer Direct Messages</a>
           </div>
         </div>
-        <div class="ktu-dropdown">
-          <button type="button" class="ktu-desktop-nav-link" aria-haspopup="true">
-            <i class="bi bi-mortarboard"></i> Academics <i class="bi bi-chevron-down" style="font-size: 0.75rem;"></i>
-          </button>
-          <div class="ktu-dropdown-menu">
-            <a href="{{ url_for('utility.get_courses') }}"><i class="bi bi-mortarboard"></i> Course & Lecturer Reviews</a>
-            <a href="{{ url_for('utility.roulette_matcher') }}"><i class="bi bi-people"></i> Study Buddy Roulette</a>
-            <a href="{{ url_for('utility.get_skill_swaps') }}"><i class="bi bi-arrow-left-right"></i> Skill & Favor Barter</a>
-          </div>
-        </div>
-        <a href="{{ url_for('auth.onboarding') }}" class="ktu-desktop-nav-link">
-          <i class="bi bi-card-checklist"></i> Admissions
+        <a href="{{ url_for('utility.get_facilities') }}" class="ktu-desktop-nav-link">
+          <i class="bi bi-geo-alt"></i> Facilities
+        </a>
+        <a href="{{ url_for('profile.settings') }}" class="ktu-desktop-nav-link">
+          <i class="bi bi-gear"></i> Settings
         </a>
       </nav>
 
@@ -536,7 +529,7 @@
     </div>
 
     <!-- ====================================================================== -->
-    <!-- 3. Navigation Drawer Menu (Exact list structure from screenshot)      -->
+    <!-- 3. Navigation Drawer Menu                                              -->
     <!-- ====================================================================== -->
     <nav id="ktuNavDrawer" class="ktu-nav-drawer" aria-label="Main menu">
       <ul class="ktu-menu-list">
@@ -573,63 +566,13 @@
           </ul>
         </li>
 
-        <!-- 3. Academics (Expandable) -->
+        <!-- 3. Creative Culture & Media (Expandable) -->
         <li class="ktu-menu-item">
-          <button type="button" class="ktu-accordion-toggle" onclick="toggleKtuMenu('submenuAcademics', this)">
-            <span>Academics</span>
+          <button type="button" class="ktu-accordion-toggle" onclick="toggleKtuMenu('submenuCulture', this)">
+            <span>Culture & Media</span>
             <i class="bi bi-chevron-down ktu-caret-icon"></i>
           </button>
-          <ul id="submenuAcademics" class="ktu-submenu-list">
-            <li>
-              <a href="{{ url_for('utility.get_courses') }}" class="ktu-submenu-link">
-                <i class="bi bi-mortarboard"></i> Course & Lecturer Reviews
-              </a>
-            </li>
-            <li>
-              <a href="{{ url_for('auth.onboarding') }}" class="ktu-submenu-link">
-                <i class="bi bi-journal-text"></i> Official 2026 Academic Catalog
-              </a>
-            </li>
-            <li>
-              <a href="{{ url_for('utility.roulette_matcher') }}" class="ktu-submenu-link">
-                <i class="bi bi-people"></i> Library Study Roulette & Partners
-              </a>
-            </li>
-          </ul>
-        </li>
-
-        <!-- 4. Admissions & Student Onboarding (Expandable) -->
-        <li class="ktu-menu-item">
-          <button type="button" class="ktu-accordion-toggle" onclick="toggleKtuMenu('submenuAdmissions', this)">
-            <span>Admissions</span>
-            <i class="bi bi-chevron-down ktu-caret-icon"></i>
-          </button>
-          <ul id="submenuAdmissions" class="ktu-submenu-list">
-            <li>
-              <a href="{{ url_for('auth.register') }}" class="ktu-submenu-link">
-                <i class="bi bi-person-plus"></i> Student Account Registration
-              </a>
-            </li>
-            <li>
-              <a href="{{ url_for('auth.onboarding') }}" class="ktu-submenu-link">
-                <i class="bi bi-card-checklist"></i> Academic Profile Onboarding Wizard
-              </a>
-            </li>
-            <li>
-              <a href="{{ url_for('auth.login') }}" class="ktu-submenu-link">
-                <i class="bi bi-box-arrow-in-right"></i> Student Portal Sign In
-              </a>
-            </li>
-          </ul>
-        </li>
-
-        <!-- 5. Research & Creative Culture (Expandable) -->
-        <li class="ktu-menu-item">
-          <button type="button" class="ktu-accordion-toggle" onclick="toggleKtuMenu('submenuResearch', this)">
-            <span>Research</span>
-            <i class="bi bi-chevron-down ktu-caret-icon"></i>
-          </button>
-          <ul id="submenuResearch" class="ktu-submenu-list">
+          <ul id="submenuCulture" class="ktu-submenu-list">
             <li>
               <a href="{{ url_for('culture.aux_battle') }}" class="ktu-submenu-link">
                 <i class="bi bi-music-note-beamed"></i> Daily Aux Cord Battles & Audio Lab
@@ -648,33 +591,35 @@
           </ul>
         </li>
 
-        <!-- 6. Library & Utilities -->
+        <!-- 4. Facilities & Occupancy -->
         <li class="ktu-menu-item">
           <a href="{{ url_for('utility.get_facilities') }}" class="ktu-menu-link">
-            <span>Library</span>
+            <span>Facility Status & Gym</span>
           </a>
         </li>
 
-        <!-- 7. Campus (Expandable) -->
+        <!-- 5. Settings (Main Navigation Menu Item with Gear Icon) -->
+        <li class="ktu-menu-item">
+          <a href="{{ url_for('profile.settings') }}" class="ktu-menu-link" style="color: #4f46e5;">
+            <span><i class="bi bi-gear-fill"></i> Settings</span>
+          </a>
+        </li>
+
+        <!-- 6. Campus & Account (Expandable) -->
         <li class="ktu-menu-item">
           <button type="button" class="ktu-accordion-toggle" onclick="toggleKtuMenu('submenuCampus', this)">
-            <span>Campus</span>
+            <span>Account & Direct Messages</span>
             <i class="bi bi-chevron-down ktu-caret-icon"></i>
           </button>
           <ul id="submenuCampus" class="ktu-submenu-list">
             <li>
-              <a href="{{ url_for('utility.get_facilities') }}" class="ktu-submenu-link">
-                <i class="bi bi-speedometer2"></i> Live Facility & Gym Occupancy
-              </a>
-            </li>
-            <li>
-              <a href="{{ url_for('utility.get_skill_swaps') }}" class="ktu-submenu-link">
-                <i class="bi bi-arrow-left-right"></i> Student Favor & Skill Swap Board
-              </a>
-            </li>
-            <li>
               <a href="{{ url_for('messages.index') }}" class="ktu-submenu-link">
                 <i class="bi bi-chat-dots"></i> Peer Direct Messages
+              </a>
+            </li>
+            <li>
+              <a href="{{ url_for('profile.settings') }}" class="ktu-submenu-link">
+                <i class="bi bi-gear"></i> Settings (Privacy, Theme, Alerts)
               </a>
             </li>
             {% if current_user.is_authenticated and current_user.username %}

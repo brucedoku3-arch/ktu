@@ -45,6 +45,12 @@ class User(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    # User Preferences & Privacy Settings
+    profile_visibility = db.Column(db.String(20), default="campus", nullable=False)  # 'public' or 'campus'
+    notify_email = db.Column(db.Boolean, default=True, nullable=False)
+    notify_in_app = db.Column(db.Boolean, default=True, nullable=False)
+    theme_preference = db.Column(db.String(10), default="light", nullable=False)  # 'light' or 'dark'
+
     # Relationships configured to mirror corresponding models' back_populates
     posts = db.relationship(
         "Post", back_populates="author", cascade="all, delete-orphan", lazy="dynamic"
@@ -236,6 +242,10 @@ class User(UserMixin, db.Model):
             "is_active": self.is_active,
             "is_verified": self.is_verified,
             "karma_score": self.karma_score,
+            "profile_visibility": getattr(self, "profile_visibility", "campus") or "campus",
+            "notify_email": getattr(self, "notify_email", True) if getattr(self, "notify_email", None) is not None else True,
+            "notify_in_app": getattr(self, "notify_in_app", True) if getattr(self, "notify_in_app", None) is not None else True,
+            "theme_preference": getattr(self, "theme_preference", "light") or "light",
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 

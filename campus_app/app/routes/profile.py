@@ -14,7 +14,7 @@ from flask import (
     request,
     url_for,
 )
-from flask_login import current_user, login_required
+from flask_login import current_user, login_required, logout_user
 
 from app import db
 from app.models.moderation import Block, Report
@@ -372,3 +372,127 @@ def report_user(username: str):
         }), 201
 
     return redirect(url_for("profile.view_profile", username=username))
+
+
+# -----------------------------------------------------------------------------
+# Streamlined Mobile-First Student Settings Endpoint (GET & POST /profile/settings)
+# -----------------------------------------------------------------------------
+@profile_bp.route("/settings", methods=["GET", "POST"])
+@login_required
+def settings():
+    """
+    Renders and processes essential settings options:
+    - Account Settings (Change Password, Update Email)
+    - Profile Visibility & Privacy (Public vs Campus Only)
+    - Notification Preferences (Toggle Email/In-App alerts)
+    - Theme Toggle (Light / Dark Mode)
+    - Delete / Deactivate Account button
+    """
+    if request.method == "POST":
+        data = request.get_json(silent=True) if request.is_json else request.form
+        action = data.get("action", "save_all")
+
+        # 1. Delete / Deactivate Account
+        if action in ("deactivate", "delete"):
+            current_user.is_active = False
+            try:
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+            logout_user()
+            flash("Your account has been deactivated.", "info")
+            if wants_json():
+                return jsonify({"status": "success", "message": "Account deactivated."}), 200
+            return redirect(url_for("auth.login"))
+
+        errors = []
+        success_messages = []
+
+        # 2. Account Settings: Update Email
+        new_email = (data.get("email") or "").strip().lower()
+        if new_email and new_email != current_user.email.strip().lower():
+            if not User.is_valid_student_email(new_email):
+                errors.append("Invalid email. Must be an official @ktu.edu.gh student email.")
+            else:
+                existing = User.query.filter(User.email.ilike(new_email), User.id != current_user.id).first()
+                if existing:
+                    errors.append("This email address is already registered to another student account.")
+                else:
+                    current_user.email = new_email
+                    success_messages.append("Institutional email updated.")
+
+        # 3. Account Settings: Change Password
+        curr_pwd = data.get("current_password")
+        new_pwd = data.get("new_password")
+        confirm_pwd = data.get("confirm_password")
+        if new_pwd:
+            if not curr_pwd:
+                errors.append("Current password is required to set a new password.")
+            elif not current_user.check_password(curr_pwd):
+                errors.append("Current password does not match stored records.")
+            elif len(new_pwd) < 6:
+                errors.append("New password must be at least 6 characters long.")
+            elif new_pwd != confirm_pwd:
+                errors.append("New password and confirmation do not match.")
+            else:
+                current_user.set_password(new_pwd)
+                success_messages.append("Password successfully updated.")
+
+        # 4. Profile Visibility & Privacy
+        if "profile_visibility" in data:
+            vis = data.get("profile_visibility", "campus").lower().strip()
+            if vis in ("public", "campus"):
+                current_user.profile_visibility = vis
+                success_messages.append(f"Profile visibility set to {vis.capitalize()}.")
+
+        # 5. Notification Preferences
+        if request.is_json:
+            if "notify_email" in data:
+                current_user.notify_email = bool(data.get("notify_email"))
+            if "notify_in_app" in data:
+                current_user.notify_in_app = bool(data.get("notify_in_app"))
+        else:
+            if "notifications_submitted" in data or action in ("save_all", "save_notifications"):
+                current_user.notify_email = bool(request.form.get("notify_email"))
+                current_user.notify_in_app = bool(request.form.get("notify_in_app"))
+                success_messages.append("Notification preferences updated.")
+
+        # 6. Theme Toggle
+        if "theme_preference" in data:
+            theme = data.get("theme_preference", "light").lower().strip()
+            if theme in ("light", "dark"):
+                current_user.theme_preference = theme
+                success_messages.append(f"Theme set to {theme.capitalize()} Mode.")
+
+        if errors:
+            for err in errors:
+                flash(err, "error")
+            if wants_json():
+                return jsonify({"status": "error", "errors": errors, "message": errors[0]}), 422
+            return render_template("profile/settings.html", user=current_user), 422
+
+        try:
+            db.session.commit()
+            if not success_messages:
+                success_messages.append("Settings saved successfully.")
+            for msg in success_messages:
+                flash(msg, "success")
+        except Exception:
+            db.session.rollback()
+            err_msg = "Database error saving settings. Please try again."
+            flash(err_msg, "error")
+            if wants_json():
+                return jsonify({"status": "error", "message": err_msg}), 500
+            return render_template("profile/settings.html", user=current_user), 500
+
+        if wants_json():
+            return jsonify({
+                "status": "success",
+                "message": "Settings saved successfully.",
+                "user": current_user.to_dict(),
+            }), 200
+
+        return redirect(url_for("profile.settings"))
+
+    return render_template("profile/settings.html", user=current_user)
+
