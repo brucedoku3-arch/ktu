@@ -330,7 +330,7 @@ def brainrot_hub():
         {"name": "#ktu", "slug": "#ktu", "count": Post.query.filter(Post.category == "meme", Post.caption.ilike("%#ktu%")).count()},
         {"name": "#examseason", "slug": "#examseason", "count": Post.query.filter(Post.category == "meme", Post.caption.ilike("%#examseason%")).count()},
         {"name": "#hallwars", "slug": "#hallwars", "count": Post.query.filter(Post.category == "meme", Post.caption.ilike("%#hallwars%")).count()},
-        {"name": "#lecturers", "slug": "#lecturers", "count": Post.query.filter(Post.category == "meme", Post.caption.ilike("%#lecturers%")).count()},
+        {"name": "#campuslife", "slug": "#campuslife", "count": Post.query.filter(Post.category == "meme", Post.caption.ilike("%#campuslife%")).count()},
         {"name": "#freshers", "slug": "#freshers", "count": Post.query.filter(Post.category == "meme", Post.caption.ilike("%#freshers%")).count()},
     ]
 

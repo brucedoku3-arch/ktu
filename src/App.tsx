@@ -84,8 +84,10 @@ import {
   ChevronRight,
   Compass,
   Grid,
-  HelpCircle
+  HelpCircle,
+  Settings
 } from 'lucide-react';
+import { SettingsModal } from './components/SettingsModal';
 import StudentOnboardingFlow from './components/StudentOnboardingFlow';
 import KTULandingPage from './components/KTULandingPage';
 import DeleteConfirmModal from './components/DeleteConfirmModal';
@@ -422,8 +424,11 @@ export default function App() {
     }
   }, [currentUser.is_admin, activeTab]);
   
-  // Hub sub-tabs: news | polls | events | roulette | reviews | swap
-  const [hubSection, setHubSection] = useState<'news' | 'polls' | 'events' | 'roulette' | 'reviews' | 'swap'>('news');
+  // Settings Modal State
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+
+  // Hub sub-tabs: news | polls | events
+  const [hubSection, setHubSection] = useState<'news' | 'polls' | 'events'>('news');
   const [showAdminHubDrawer, setShowAdminHubDrawer] = useState(false);
 
   // Viewing user profile state
@@ -1437,13 +1442,13 @@ export default function App() {
       reporter_id: 2,
       reporter_username: 'adwoa_procure',
       reporter_student_id: '04/2022/1149D',
-      target_type: 'review',
+      target_type: 'post',
       target_id: 101,
       reason: 'harassment',
-      details: 'Targeted character assassination against FOE Engineering Lecturer Dr. Boateng in anonymous course rating.',
+      details: 'Targeted character insults and cyberbullying against fellow campus students in anonymous discussion post.',
       status: 'pending',
       created_at: '12 mins ago',
-      target_preview: 'COE 201 Anonymous Review: "Lecturer Boateng is intentionally malicious, cancels lectures at CCB..."',
+      target_preview: 'Anonymous Post: "Insulting remarks targeting student leaders..."',
       is_anonymous: true,
       real_author: {
         id: 8,
@@ -1514,7 +1519,7 @@ export default function App() {
       action: 'suspend_user',
       target_type: 'user',
       target_id: 19,
-      reason_given: '7-day suspension: Repeated spamming in textbook barter channel.',
+      reason_given: '7-day suspension: Repeated spamming in campus announcements.',
       timestamp: 'Today · 08:30 AM',
     },
     {
@@ -1952,395 +1957,6 @@ export default function App() {
     },
   ]);
 
-  // ---------------------------------------------------------------------------
-  // 7. KTU HUB: COURSE REVIEWS & SKILL BARTER STATE
-  // ---------------------------------------------------------------------------
-  const [courseSearchQuery, setCourseSearchQuery] = useState('');
-  const [showCourseReviewModal, setShowCourseReviewModal] = useState(false);
-  const [reviewCourseCode, setReviewCourseCode] = useState('AUT 201');
-  const [reviewLecturer, setReviewLecturer] = useState('Dr. K. Frimpong');
-  const [reviewRatingStars, setReviewRatingStars] = useState(5);
-  const [reviewCommentText, setReviewCommentText] = useState('');
-
-  const [courseList, setCourseList] = useState([
-    {
-      code: 'AUT 201',
-      title: 'Automotive Thermodynamics & Heat Transfer',
-      faculty: 'Faculty of Engineering (FOE)',
-      lecturer: 'Dr. K. Frimpong',
-      avgRating: 4.7,
-      reviewsCount: 28,
-      reviews: [
-        {
-          id: 1,
-          author: 'kofi_eng',
-          studentId: '04/2023/0411D',
-          rating: 5,
-          text: 'Dr. Frimpong gives excellent practical lab sessions in the New Multipurpose Building. Make sure to attend all lab tests!',
-          helpfulCount: 24,
-          userHelpful: true,
-          time: '3 days ago',
-        },
-        {
-          id: 2,
-          author: 'yaw_telecom',
-          studentId: '04/2024/0082D',
-          rating: 4,
-          text: 'Mid-sem was tough but calculations are straightforward if you study past questions from 2022-2024.',
-          helpfulCount: 11,
-          userHelpful: false,
-          time: '1 week ago',
-        },
-      ],
-    },
-    {
-      code: 'CS 305',
-      title: 'Software Engineering Principles & System Architecture',
-      faculty: 'Faculty of Applied Sciences (FAST)',
-      lecturer: 'Eng. A. Mensah',
-      avgRating: 4.9,
-      reviewsCount: 35,
-      reviews: [
-        {
-          id: 3,
-          author: 'kwame_cs',
-          studentId: '04/2023/089D',
-          rating: 5,
-          text: 'Best lecturer in FAST! The term project building a real full-stack web app taught me more than 3 theory semesters.',
-          helpfulCount: 39,
-          userHelpful: true,
-          time: '4 days ago',
-        },
-      ],
-    },
-    {
-      code: 'PSC 204',
-      title: 'Public Procurement Law & Contract Administration',
-      faculty: 'Faculty of Business & Management (FBMS)',
-      lecturer: 'Mrs. G. Ofori',
-      avgRating: 4.3,
-      reviewsCount: 19,
-      reviews: [
-        {
-          id: 4,
-          author: 'adwoa_procure',
-          studentId: '04/2022/1149D',
-          rating: 4,
-          text: 'Requires heavy memorization of the Public Procurement Act (Act 663 as amended by Act 914), but grading is fair.',
-          helpfulCount: 15,
-          userHelpful: false,
-          time: '2 weeks ago',
-        },
-      ],
-    },
-  ]);
-
-  // Skill Barter State
-  const [showSkillSwapModal, setShowSkillSwapModal] = useState(false);
-  const [swapOfferingInput, setSwapOfferingInput] = useState('');
-  const [swapSeekingInput, setSwapSeekingInput] = useState('');
-  const [swapDescriptionInput, setSwapDescriptionInput] = useState('');
-  const [skillSwapList, setSkillSwapList] = useState([
-    {
-      id: 1,
-      author: 'kwame_cs',
-      handle: '@kwame_cs',
-      studentId: 'KTU/FAST/CS/23/089',
-      faculty: 'FAST · Computer Science',
-      offering: 'React, TypeScript & Python API Development',
-      seeking: 'Electrical Circuit Analysis (FOE Lab 3)',
-      bio: 'Willing to build your project front-end or portfolio website in exchange for tutoring on circuit schematics!',
-      time: '3h ago',
-    },
-    {
-      id: 2,
-      author: 'adwoa_procure',
-      handle: '@adwoa_procure',
-      studentId: 'KTU/FBMS/PSC/22/114',
-      faculty: 'FBMS · Procurement',
-      offering: 'Financial Accounting & Excel Data Modeling',
-      seeking: 'Canva & Figma Graphic Design for Event Flyers',
-      bio: 'Can tutor you through mid-sem Cost Accounting in exchange for 3 society flyer templates.',
-      time: '5h ago',
-    },
-    {
-      id: 3,
-      author: 'derrick_civil',
-      handle: '@derrick_civil',
-      studentId: '04/2024/0339D',
-      faculty: 'FOSIS · Civil Engineering',
-      offering: 'AutoCAD 2D/3D Architectural Blueprints',
-      seeking: 'Engineering Mathematics & Calculus II',
-      bio: 'Civil level 200 offering drafting assistance in exchange for ODE and differential equations study sessions.',
-      time: '1d ago',
-    },
-  ]);
-
-  // ---------------------------------------------------------------------------
-  // 6. ROULETTE & COURSES STATE (Opposite Sex & Same Level Matching)
-  // ---------------------------------------------------------------------------
-  const [rouletteActivity, setRouletteActivity] = useState<'study_buddy' | 'lab_partner' | 'dining_hall' | 'campus_walk'>('study_buddy');
-  const [rouletteSlot, setRouletteSlot] = useState<'morning' | 'afternoon' | 'evening'>('afternoon');
-  const [isSearchingMatch, setIsSearchingMatch] = useState(false);
-  const [matchedPartner, setMatchedPartner] = useState<any | null>(null);
-
-  const PEER_CANDIDATES = [
-    // LEVEL 100
-    {
-      id: 1,
-      name: 'Akosua Boakye',
-      handle: '@akosua_fast',
-      studentId: '04/2025/0112D',
-      gender: 'female',
-      level: 100,
-      faculty: 'Faculty of Applied Sciences (FAST)',
-      program: 'BTech Computer Science',
-      location: 'Central Library (1st Floor Silent Reading)',
-      activity: 'Quiet Study Session',
-      bio: 'Level 100 looking for an opposite-sex study partner in Calculus I and Intro to Programming.',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
-    },
-    {
-      id: 2,
-      name: 'Yaa Konadu',
-      handle: '@yaa_procure',
-      studentId: '04/2025/0784D',
-      gender: 'female',
-      level: 100,
-      faculty: 'Faculty of Business & Management (FBMS)',
-      program: 'BTech Procurement & Logistics',
-      location: 'Food Village Pavilions',
-      activity: 'Dining & Study Chat',
-      bio: 'Level 100 business student looking for an opposite-sex peer to collaborate on Principles of Management.',
-      avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=120&auto=format&fit=crop&q=80',
-    },
-    {
-      id: 3,
-      name: 'Kojo Antwi',
-      handle: '@kojo_antwi',
-      studentId: '04/2025/0304D',
-      gender: 'male',
-      level: 100,
-      faculty: 'Faculty of Engineering (FOE)',
-      program: 'BTech Mechanical Engineering',
-      location: 'Engineering Workshop 1',
-      activity: 'Practicals Lab Partner',
-      bio: 'Level 100 freshman engineering student looking for an opposite-sex partner for Technical Drawing and Workshop practicals.',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80',
-    },
-    {
-      id: 4,
-      name: 'Emmanuel Mensah',
-      handle: '@emmanuel_elec',
-      studentId: '04/2025/0912D',
-      gender: 'male',
-      level: 100,
-      faculty: 'Faculty of Engineering (FOE)',
-      program: 'BTech Electrical & Electronic Engineering',
-      location: 'New 5-Storey Multipurpose Engineering Facility (Room E-101)',
-      activity: 'Quiet Study Session',
-      bio: 'Level 100 seeking a focused female study partner for Physics I and Basic Electronics.',
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&auto=format&fit=crop&q=80',
-    },
-    // LEVEL 200
-    {
-      id: 5,
-      name: 'Adwoa Mensah',
-      handle: '@adwoa_procure',
-      studentId: '04/2024/1149D',
-      gender: 'female',
-      level: 200,
-      faculty: 'Faculty of Business & Management (FBMS)',
-      program: 'BTech Procurement & Supply Chain',
-      location: 'University Central Library (2nd Floor Discussion Area)',
-      activity: 'Quiet Study Session',
-      bio: 'Level 200 student reviewing Supply Chain Logistics and Business Law mid-semester questions.',
-      avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80',
-    },
-    {
-      id: 6,
-      name: 'Abena Serwaa',
-      handle: '@abena_it',
-      studentId: '04/2024/0552D',
-      gender: 'female',
-      level: 200,
-      faculty: 'Faculty of Applied Sciences (FAST)',
-      program: 'BTech Information Technology',
-      location: 'CCB Block Computer Lab 1',
-      activity: 'Coding & Lab Practicals',
-      bio: 'Level 200 IT student seeking an opposite-sex study peer for Database Management & Java OOP.',
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=80',
-    },
-    {
-      id: 7,
-      name: 'Kwesi Appiah',
-      handle: '@kwesi_telecom',
-      studentId: '04/2024/0821D',
-      gender: 'male',
-      level: 200,
-      faculty: 'Faculty of Engineering (FOE)',
-      program: 'BTech Electrical & Electronic Engineering',
-      location: 'New 5-Storey Multipurpose Engineering Facility (Room E-204)',
-      activity: 'Workshop Practicals Partner',
-      bio: 'Level 200 looking for an opposite-sex study partner in Circuit Analysis and Digital Electronics.',
-      avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=120&auto=format&fit=crop&q=80',
-    },
-    {
-      id: 8,
-      name: 'Derrick Boateng',
-      handle: '@derrick_civil',
-      studentId: '04/2024/0339D',
-      gender: 'male',
-      level: 200,
-      faculty: 'Faculty of Built Environment (FOSIS)',
-      program: 'BTech Civil Engineering',
-      location: 'Civil Concrete Testing Laboratory',
-      activity: 'Lab Partner',
-      bio: 'Level 200 Civil student looking for a female peer for Strength of Materials and Surveying fieldwork.',
-      avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=120&auto=format&fit=crop&q=80',
-    },
-    // LEVEL 300
-    {
-      id: 9,
-      name: 'Serwaa Acheampong',
-      handle: '@serwaa_stats',
-      studentId: '04/2023/0441D',
-      gender: 'female',
-      level: 300,
-      faculty: 'Faculty of Applied Sciences (FAST)',
-      program: 'BTech Applied Statistics',
-      location: 'CCB Block Computer Lab 2',
-      activity: 'Quiet Study Session',
-      bio: 'Level 300 statistics major looking for an opposite-sex study peer for SPSS and Econometrics project work.',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
-    },
-    {
-      id: 10,
-      name: 'Priscilla Antwi',
-      handle: '@priscilla_cs',
-      studentId: '04/2023/0187D',
-      gender: 'female',
-      level: 300,
-      faculty: 'Faculty of Applied Sciences (FAST)',
-      program: 'BTech Computer Science',
-      location: 'Central Library E-Learning Zone',
-      activity: 'Project & Thesis Research',
-      bio: 'Level 300 CS major looking for an opposite-sex study partner for Software Engineering and Distributed Systems.',
-      avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80',
-    },
-    {
-      id: 11,
-      name: 'Yaw Osei',
-      handle: '@yaw_civil',
-      studentId: '04/2023/0902D',
-      gender: 'male',
-      level: 300,
-      faculty: 'Faculty of Built Environment (FOSIS)',
-      program: 'BTech Civil Engineering',
-      location: 'Surveying Field / CCB Hall A',
-      activity: 'Practicals Lab Partner',
-      bio: 'Level 300 Civil student working on structural mechanics calculations.',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80',
-    },
-    {
-      id: 12,
-      name: 'Kelvin Asante',
-      handle: '@kelvin_auto',
-      studentId: '04/2023/0672D',
-      gender: 'male',
-      level: 300,
-      faculty: 'Faculty of Engineering (FOE)',
-      program: 'BTech Automotive Engineering',
-      location: 'New Multipurpose Engineering Lab (Room E-301)',
-      activity: 'Workshop Practicals',
-      bio: 'Level 300 Automotive student looking for an opposite-sex partner for Thermodynamics practical reports.',
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&auto=format&fit=crop&q=80',
-    },
-    // LEVEL 400
-    {
-      id: 13,
-      name: 'Efua Darko',
-      handle: '@efua_tech',
-      studentId: '04/2022/0155D',
-      gender: 'female',
-      level: 400,
-      faculty: 'Faculty of Engineering (FOE)',
-      program: 'BTech Computer Systems Engineering',
-      location: 'Final Year Project Hub (FOE Lab 4)',
-      activity: 'Study Grind & Project Work',
-      bio: 'Level 400 final-year student working on IoT capstone project and thesis defense.',
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=80',
-    },
-    {
-      id: 14,
-      name: 'Mawusi Gbedemah',
-      handle: '@mawusi_mkt',
-      studentId: '04/2022/0831D',
-      gender: 'female',
-      level: 400,
-      faculty: 'Faculty of Business & Management (FBMS)',
-      program: 'BTech Marketing',
-      location: 'Central Library 3rd Floor Research Wing',
-      activity: 'Thesis Research Partner',
-      bio: 'Level 400 student completing final dissertation in Digital Consumer Behavior.',
-      avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=120&auto=format&fit=crop&q=80',
-    },
-    {
-      id: 15,
-      name: 'Kofi Owusu',
-      handle: '@kofi_eng',
-      studentId: '04/2022/0411D',
-      gender: 'male',
-      level: 400,
-      faculty: 'Faculty of Engineering (FOE)',
-      program: 'BTech Automotive Engineering',
-      location: 'Automotive Diagnostics Center',
-      activity: 'Workshop Practicals Partner',
-      bio: 'Level 400 preparing thesis on electric drivetrain diagnostics.',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
-    },
-    {
-      id: 16,
-      name: 'Prince Gyasi',
-      handle: '@prince_telecom',
-      studentId: '04/2022/0290D',
-      gender: 'male',
-      level: 400,
-      faculty: 'Faculty of Engineering (FOE)',
-      program: 'BTech Telecommunications Engineering',
-      location: 'Telecom Signal Processing Lab',
-      activity: 'Final Year Project Partner',
-      bio: 'Level 400 student working on 5G network modeling and thesis simulations.',
-      avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=120&auto=format&fit=crop&q=80',
-    },
-  ];
-
-  const startRouletteMatch = () => {
-    setIsSearchingMatch(true);
-    setMatchedPartner(null);
-    setTimeout(() => {
-      setIsSearchingMatch(false);
-      const targetGender = currentUser.gender === 'male' ? 'female' : 'male';
-      const targetLevel = currentUser.level;
-
-      // STRICT CRITERIA: OPPOSITE SEX & SAME ACADEMIC LEVEL (Level 100, 200, 300, 400)
-      const eligible = PEER_CANDIDATES.filter(
-        (c) => (currentUser.gender === 'Prefer not to say' || c.gender === targetGender) && c.level === targetLevel
-      );
-
-      const partner = eligible.length > 0
-        ? eligible[Math.floor(Math.random() * eligible.length)]
-        : PEER_CANDIDATES.find((c) => c.level === targetLevel) || PEER_CANDIDATES[Math.floor(Math.random() * PEER_CANDIDATES.length)];
-
-      setMatchedPartner(partner);
-      if (partner) {
-        triggerToast(`Study match found: ${partner.name}!`);
-      } else {
-        triggerToast('No matching study peer available right now. Please try again.');
-      }
-    }, 1200);
-  };
-
   // Helper toast trigger
   const triggerToast = (msg: string) => {
     setFeedbackToast(msg);
@@ -2505,19 +2121,6 @@ export default function App() {
       navigator.clipboard.writeText(textToCopy);
     }
     triggerToast('Formatted post summary & link copied!');
-  };
-
-  const handleShareRouletteMatch = (partner: any) => {
-    openShareModal({
-      type: 'swap',
-      id: `roulette-${partner.id}`,
-      title: `KTU Peer Match: ${partner.name} & @${currentUser.username}`,
-      subtitle: `Matched on KTU Hub for ${partner.activity || 'Course Study Session'} (${partner.program})`,
-      author: currentUser.username,
-      badge: `Opposite-Sex Level ${partner.level} Match`,
-      avatar: partner.avatar,
-      url: `${window.location.origin}/#match-${partner.id}`,
-    });
   };
 
   const handleShareVlog = (vlog: VlogItem) => {
@@ -2738,88 +2341,6 @@ export default function App() {
     setAuxFormArtist('');
     setShowAuxModal(false);
     triggerToast(`"${newTrack.title}" submitted to KTU 87.7 FM Aux Battle!`);
-  };
-
-  // ---------------------------------------------------------------------------
-  // KTU HUB REVIEWS & SWAP HANDLERS
-  // ---------------------------------------------------------------------------
-  const handleHelpfulReview = (courseCode: string, reviewId: number) => {
-    setCourseList((prev) =>
-      prev.map((c) => {
-        if (c.code !== courseCode) return c;
-        return {
-          ...c,
-          reviews: c.reviews.map((r) => {
-            if (r.id !== reviewId) return r;
-            const nextHelpful = !r.userHelpful;
-            triggerToast(nextHelpful ? 'Marked review as helpful!' : 'Helpful vote removed');
-            return {
-              ...r,
-              userHelpful: nextHelpful,
-              helpfulCount: nextHelpful ? r.helpfulCount + 1 : Math.max(0, r.helpfulCount - 1),
-            };
-          }),
-        };
-      })
-    );
-  };
-
-  const handleAddCourseReview = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!reviewCommentText.trim()) return;
-    const newRev = {
-      id: Date.now(),
-      author: currentUser.username,
-      studentId: currentUser.student_id,
-      rating: reviewRatingStars,
-      text: reviewCommentText.trim(),
-      helpfulCount: 0,
-      userHelpful: false,
-      time: 'Just now',
-    };
-    setCourseList((prev) =>
-      prev.map((c) =>
-        c.code === reviewCourseCode
-          ? {
-              ...c,
-              reviewsCount: c.reviewsCount + 1,
-              reviews: [newRev, ...c.reviews],
-            }
-          : c
-      )
-    );
-    setReviewCommentText('');
-    setShowCourseReviewModal(false);
-    triggerToast(`Review submitted for ${reviewCourseCode}! +5 Karma`);
-  };
-
-  const handleOfferSwap = (swapItem: any) => {
-    setActivePartnerUsername(swapItem.handle.replace('@', ''));
-    setChatMessageInput(`Hey @${swapItem.handle.replace('@', '')}! I saw your KTU skill barter listing offering "${swapItem.offering}" seeking "${swapItem.seeking}". I would love to trade skills!`);
-    setActiveTab('chat');
-    triggerToast(`Chat opened with @${swapItem.handle.replace('@', '')}! Hit send to propose swap.`);
-  };
-
-  const handleAddSkillSwap = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!swapOfferingInput.trim() || !swapSeekingInput.trim()) return;
-    const newSwap = {
-      id: Date.now(),
-      author: currentUser.username,
-      handle: `@${currentUser.username}`,
-      studentId: currentUser.student_id,
-      faculty: currentUser.faculty,
-      offering: swapOfferingInput.trim(),
-      seeking: swapSeekingInput.trim(),
-      bio: swapDescriptionInput.trim() || 'Excited to barter peer tutoring and skills on campus!',
-      time: 'Just now',
-    };
-    setSkillSwapList([newSwap, ...skillSwapList]);
-    setSwapOfferingInput('');
-    setSwapSeekingInput('');
-    setSwapDescriptionInput('');
-    setShowSkillSwapModal(false);
-    triggerToast('Your skill barter listing is now live on KTU Hub!');
   };
 
   const handleSaveVlog = (vlogId: number) => {
@@ -3212,6 +2733,20 @@ export default function App() {
                 )}
               </button>
             )}
+
+            {/* ⚙️ Settings (Main Navigation Menu Item) */}
+            <button
+              onClick={() => {
+                setIsSettingsModalOpen(true);
+                setIsMenuDrawerOpen(false);
+                setDesktopDropdown(null);
+              }}
+              className="px-3 py-1.5 text-xs xl:text-sm font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 text-slate-700 hover:text-indigo-600 hover:bg-indigo-50"
+              title="Essential Account & Privacy Settings"
+            >
+              <Settings className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-indigo-600" />
+              <span>Settings</span>
+            </button>
           </nav>
 
           {/* Quick Header Actions & Prominent MENU Button */}
@@ -3369,10 +2904,21 @@ export default function App() {
                     </button>
                     <button
                       onClick={() => {
+                        setIsSettingsModalOpen(true);
+                        setIsMenuDrawerOpen(false);
+                      }}
+                      className="px-2.5 py-1.5 text-xs font-bold rounded-lg border border-slate-200 bg-white hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                      title="Settings"
+                    >
+                      <Settings className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Settings</span>
+                    </button>
+                    <button
+                      onClick={() => {
                         setShowReportModal(true);
                         setIsMenuDrawerOpen(false);
                       }}
-                      className="px-3 py-1.5 text-xs font-bold rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 transition-colors cursor-pointer flex items-center gap-1.5"
+                      className="px-2.5 py-1.5 text-xs font-bold rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 transition-colors cursor-pointer flex items-center gap-1.5"
                     >
                       <AlertTriangle className="w-3.5 h-3.5" />
                       <span>Report</span>
@@ -3506,6 +3052,35 @@ export default function App() {
                         <div>
                           <div className="font-bold">Live Student Polls & Surveys</div>
                           <div className="text-[11px] text-slate-500 font-normal">SRC voting & real-time campus opinions</div>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-400" />
+                    </button>
+                  )}
+
+                  {/* 6. Settings (Main Navigation Menu Item with Gear Icon) */}
+                  {(!menuFilterQuery || 'settings preferences password email privacy account theme'.includes(menuFilterQuery.toLowerCase())) && (
+                    <button
+                      onClick={() => {
+                        setIsSettingsModalOpen(true);
+                        setIsMenuDrawerOpen(false);
+                      }}
+                      className="w-full text-left px-5 sm:px-8 py-3.5 text-[14px] sm:text-[15px] font-bold text-slate-900 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 flex items-center justify-center shrink-0">
+                          <Settings className="w-4.5 h-4.5" />
+                        </div>
+                        <div>
+                          <div className="font-bold flex items-center gap-1.5 text-slate-900">
+                            <span>⚙️ Settings</span>
+                            <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-indigo-100 text-indigo-800">
+                              Essential
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-slate-500 font-normal">
+                            Password, email, visibility, alerts & theme
+                          </div>
                         </div>
                       </div>
                       <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -4400,6 +3975,7 @@ export default function App() {
                 setActiveTab('chat');
               }}
               onEditProfileClick={() => setActiveTab('onboarding')}
+              onOpenSettings={() => setIsSettingsModalOpen(true)}
               onDeletePost={(postId, caption) => {
                 triggerDeleteConfirm({
                   title: 'Delete Campus Post?',
@@ -7237,209 +6813,33 @@ export default function App() {
       )}
 
       {/* ===================================================================== */}
-      {/* MODAL: WRITE COURSE & LECTURER REVIEW                                 */}
+      {/* STREAMLINED MOBILE-FIRST SETTINGS MODAL                               */}
       {/* ===================================================================== */}
-      {showCourseReviewModal && (
-        <div
-          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 animate-in fade-in"
-          onClick={() => setShowCourseReviewModal(false)}
-        >
-          <div
-            className="bg-white rounded-3xl max-w-md w-full p-5 shadow-2xl space-y-4 border border-slate-200"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-xs">
-                  <Star className="w-4 h-4 fill-white" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900">Review KTU Course & Lecturer</h3>
-                  <p className="text-[11px] text-slate-500">Share genuine exam advice and practical syllabus tips</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowCourseReviewModal(false)}
-                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center text-sm font-bold cursor-pointer"
-              >
-                &times;
-              </button>
-            </div>
-
-            <form onSubmit={handleAddCourseReview} className="space-y-3.5">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Select Course:
-                </label>
-                <select
-                  value={reviewCourseCode}
-                  onChange={(e) => setReviewCourseCode(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-500 bg-white"
-                >
-                  {courseList.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.code} - {c.title} ({c.lecturer})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Your Rating:
-                </label>
-                <div className="flex items-center gap-1.5 py-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setReviewRatingStars(star)}
-                      className="p-1 cursor-pointer transition-transform hover:scale-125"
-                    >
-                      <Star
-                        className={`w-6 h-6 ${
-                          star <= reviewRatingStars
-                            ? 'text-amber-500 fill-amber-500'
-                            : 'text-slate-200'
-                        }`}
-                      />
-                    </button>
-                  ))}
-                  <span className="text-xs font-bold text-amber-900 ml-2 font-mono">
-                    {reviewRatingStars} / 5 Stars
-                  </span>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Your Review & Exam Tips:
-                </label>
-                <textarea
-                  required
-                  rows={3}
-                  value={reviewCommentText}
-                  onChange={(e) => setReviewCommentText(e.target.value)}
-                  placeholder="Describe lecturer teaching style, practicals vs theory, and how to pass the mid-sem and end-of-sem exam..."
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-500"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setShowCourseReviewModal(false)}
-                  className="px-4 py-2 text-xs text-slate-600 hover:text-slate-800 font-semibold cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-xs cursor-pointer transition-all flex items-center gap-1.5"
-                >
-                  <Star className="w-3.5 h-3.5 fill-white" />
-                  <span>Submit Review (+5 Karma)</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ===================================================================== */}
-      {/* MODAL: POST SKILL BARTER & PEER TUTORING                              */}
-      {/* ===================================================================== */}
-      {showSkillSwapModal && (
-        <div
-          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 animate-in fade-in"
-          onClick={() => setShowSkillSwapModal(false)}
-        >
-          <div
-            className="bg-white rounded-3xl max-w-md w-full p-5 shadow-2xl space-y-4 border border-slate-200"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs">
-                  <Repeat className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900">Post Skill Barter Listing</h3>
-                  <p className="text-[11px] text-slate-500">Trade academic tutoring and technical skills for free</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowSkillSwapModal(false)}
-                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center text-sm font-bold cursor-pointer"
-              >
-                &times;
-              </button>
-            </div>
-
-            <form onSubmit={handleAddSkillSwap} className="space-y-3.5">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  What skill or course tutoring can you OFFER?
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={swapOfferingInput}
-                  onChange={(e) => setSwapOfferingInput(e.target.value)}
-                  placeholder="e.g. AutoCAD 3D Modeling, Python Programming, Fluid Mechanics"
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  What skill or course tutoring are you SEEKING in return?
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={swapSeekingInput}
-                  onChange={(e) => setSwapSeekingInput(e.target.value)}
-                  placeholder="e.g. Differential Equations, Electrical Circuits, Financial Accounting"
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Brief Note / Study Times:
-                </label>
-                <textarea
-                  rows={2}
-                  value={swapDescriptionInput}
-                  onChange={(e) => setSwapDescriptionInput(e.target.value)}
-                  placeholder="e.g. Available weekday evenings in the FAST Lab or Library 2nd floor."
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setShowSkillSwapModal(false)}
-                  className="px-4 py-2 text-xs text-slate-600 hover:text-slate-800 font-semibold cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-xs cursor-pointer transition-all flex items-center gap-1.5"
-                >
-                  <Repeat className="w-3.5 h-3.5" />
-                  <span>Post Listing</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <SettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        currentUser={currentUser}
+        onUpdateUser={(updated) => {
+          setCurrentUser((prev: CurrentStudentUser) => {
+            const next = { ...prev, ...updated };
+            try {
+              localStorage.setItem('ktu_active_user', JSON.stringify(next));
+            } catch (e) {}
+            return next;
+          });
+        }}
+        onDeactivateAccount={() => {
+          setIsLoggedIn(false);
+          setIsSettingsModalOpen(false);
+          setIsMenuDrawerOpen(false);
+          try {
+            localStorage.setItem('ktu_is_logged_in', 'false');
+            localStorage.removeItem('ktu_active_user');
+          } catch (e) {}
+          triggerToast('Your student account has been deactivated. Signed out.');
+        }}
+        triggerToast={triggerToast}
+      />
 
       {/* Super-Admin User Management & Social Moderation Modal */}
       <AdminUserControlModal

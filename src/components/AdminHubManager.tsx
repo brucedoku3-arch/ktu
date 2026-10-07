@@ -23,7 +23,7 @@ import KTULogo from './KTULogo';
 export interface CampusNewsItem {
   id: number;
   title: string;
-  category: 'SRC' | 'Exams' | 'Academic' | 'Admissions' | 'Sports' | 'Campus Life';
+  category: 'SRC' | 'Exams' | 'Academic' | 'Student Affairs' | 'Sports' | 'Campus Life';
   date: string;
   author: string;
   imageUrl?: string;
@@ -58,7 +58,7 @@ export const AdminHubManager: React.FC<AdminHubManagerProps> = ({
 
   // Form states
   const [newsTitle, setNewsTitle] = useState('');
-  const [newsCategory, setNewsCategory] = useState<'SRC' | 'Exams' | 'Academic' | 'Admissions' | 'Sports' | 'Campus Life'>('SRC');
+  const [newsCategory, setNewsCategory] = useState<'SRC' | 'Exams' | 'Academic' | 'Student Affairs' | 'Sports' | 'Campus Life'>('SRC');
   const [newsContent, setNewsContent] = useState('');
   const [newsImageUrl, setNewsImageUrl] = useState('');
   const [newsIsPinned, setNewsIsPinned] = useState(false);
@@ -352,7 +352,7 @@ export const AdminHubManager: React.FC<AdminHubManagerProps> = ({
                 <option value="SRC">SRC Secretariat</option>
                 <option value="Exams">Examinations Directorate</option>
                 <option value="Academic">Academic Affairs</option>
-                <option value="Admissions">Admissions & Registration</option>
+                <option value="Student Affairs">Student Affairs & Guidance</option>
                 <option value="Sports">Campus Sports & GUSA</option>
                 <option value="Campus Life">Campus Life & Notices</option>
               </select>

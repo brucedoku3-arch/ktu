@@ -403,17 +403,22 @@
       </div>
 
       <div class="settings-form-group">
-        <label for="settingsEmail" class="settings-label">Official Campus Email</label>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <label class="settings-label" style="margin-bottom: 0;">Official Campus Email</label>
+          <span style="font-size: 0.7rem; font-weight: 700; color: #64748b; background: #e2e8f0; padding: 2px 8px; border-radius: 9999px;">
+            <i class="bi bi-lock-fill"></i> Permanent
+          </span>
+        </div>
         <input
           type="email"
           id="settingsEmail"
-          name="email"
           class="settings-input"
           value="{{ user.email }}"
-          required
-          autocomplete="email"
+          readonly
+          disabled
+          style="background-color: #f8fafc; color: #475569; cursor: not-allowed; border-color: #cbd5e1;"
         >
-        <span class="settings-hint">Official KTU student domain (@ktu.edu.gh) required for institutional verification.</span>
+        <span class="settings-hint">Institutional email registered at signup. Permanent address linked to Student ID ({{ user.student_id }}). Cannot be modified.</span>
       </div>
 
       <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--color-border-subtle, #f1f5f9);">
@@ -449,7 +454,7 @@
       </div>
     </section>
 
-    <!-- 2. PROFILE VISIBILITY & PRIVACY -->
+    <!-- 2. PROFILE VISIBILITY & PRIVACY (Campus Only vs Only Me / Owner) -->
     <section class="settings-card">
       <div class="settings-card-header">
         <i class="bi bi-shield-check settings-card-icon"></i>
@@ -462,11 +467,11 @@
             type="radio"
             name="profile_visibility"
             value="campus"
-            {% if (user.profile_visibility|default('campus')) == 'campus' %}checked{% endif %}
+            {% if (user.profile_visibility|default('campus')) != 'owner' and (user.profile_visibility|default('campus')) != 'private' %}checked{% endif %}
           >
           <div class="segmented-box">
             <span class="segmented-title"><i class="bi bi-building"></i> Campus Only</span>
-            <span class="segmented-desc">Only authenticated KTU students can view full profile</span>
+            <span class="segmented-desc">Visible exclusively to verified KTU students & community</span>
           </div>
         </label>
 
@@ -474,12 +479,12 @@
           <input
             type="radio"
             name="profile_visibility"
-            value="public"
-            {% if (user.profile_visibility|default('campus')) == 'public' %}checked{% endif %}
+            value="owner"
+            {% if (user.profile_visibility|default('campus')) == 'owner' or (user.profile_visibility|default('campus')) == 'private' %}checked{% endif %}
           >
           <div class="segmented-box">
-            <span class="segmented-title"><i class="bi bi-globe"></i> Public</span>
-            <span class="segmented-desc">Visible to all campus visitors and guest users</span>
+            <span class="segmented-title"><i class="bi bi-lock-fill"></i> Only Me (Owner)</span>
+            <span class="segmented-desc">Strictly private to you. Hidden from all other students</span>
           </div>
         </label>
       </div>
@@ -524,42 +529,6 @@
           >
           <span class="toggle-slider"></span>
         </label>
-      </div>
-    </section>
-
-    <!-- 4. THEME TOGGLE (LIGHT / DARK) -->
-    <section class="settings-card">
-      <div class="settings-card-header">
-        <i class="bi bi-palette settings-card-icon"></i>
-        <h2 class="settings-card-title">Theme Preference</h2>
-      </div>
-
-      <input type="hidden" name="theme_preference" id="themePreferenceInput" value="{{ user.theme_preference|default('light') }}">
-
-      <div class="theme-grid">
-        <div
-          class="theme-option {% if (user.theme_preference|default('light')) == 'light' %}active{% endif %}"
-          id="themeLightBtn"
-          onclick="selectTheme('light')"
-        >
-          <span class="theme-icon">☀️</span>
-          <div>
-            <div class="theme-text">Light Mode</div>
-            <span class="settings-hint" style="font-size: 0.725rem;">Clean KTU Institutional look</span>
-          </div>
-        </div>
-
-        <div
-          class="theme-option {% if (user.theme_preference|default('light')) == 'dark' %}active{% endif %}"
-          id="themeDarkBtn"
-          onclick="selectTheme('dark')"
-        >
-          <span class="theme-icon">🌙</span>
-          <div>
-            <div class="theme-text">Dark Mode</div>
-            <span class="settings-hint" style="font-size: 0.725rem;">OLED night-friendly palette</span>
-          </div>
-        </div>
       </div>
     </section>
 
@@ -627,34 +596,3 @@
 </div>
 {% endblock %}
 
-{% block extra_scripts %}
-<script>
-  function selectTheme(mode) {
-    const themeInput = document.getElementById('themePreferenceInput');
-    const lightBtn = document.getElementById('themeLightBtn');
-    const darkBtn = document.getElementById('themeDarkBtn');
-
-    if (themeInput) themeInput.value = mode;
-
-    if (mode === 'dark') {
-      if (darkBtn) darkBtn.classList.add('active');
-      if (lightBtn) lightBtn.classList.remove('active');
-      document.documentElement.setAttribute('data-theme', 'dark');
-      localStorage.setItem('ktu_theme', 'dark');
-    } else {
-      if (lightBtn) lightBtn.classList.add('active');
-      if (darkBtn) darkBtn.classList.remove('active');
-      document.documentElement.removeAttribute('data-theme');
-      localStorage.setItem('ktu_theme', 'light');
-    }
-  }
-
-  // Sync client theme immediately on load
-  (function() {
-    const saved = localStorage.getItem('ktu_theme') || '{{ user.theme_preference|default("light") }}';
-    if (saved === 'dark') {
-      selectTheme('dark');
-    }
-  })();
-</script>
-{% endblock %}

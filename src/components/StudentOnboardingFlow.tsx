@@ -472,7 +472,7 @@ export default function StudentOnboardingFlow({
                   </span>
                   <h2 className="text-base font-bold text-slate-900">What is your gender?</h2>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Used for campus roommate matching, peer roulette filters, and personalized social circles.
+                    Used for campus roommate matching, student discussions, and personalized social circles.
                   </p>
                 </div>
 

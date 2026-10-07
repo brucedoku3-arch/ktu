@@ -89,7 +89,7 @@ def submit_report():
     reason = (data.get("reason") or "").strip().lower()
     details = (data.get("details") or "").strip()
 
-    valid_types = {"post", "comment", "vlog", "aux_submission", "review", "user", "confession", "message"}
+    valid_types = {"post", "comment", "vlog", "aux_submission", "user", "confession", "message"}
     if not target_type or (target_type not in valid_types and raw_target_type not in valid_types):
         msg = f"Invalid target_type. Must be one of: {', '.join(sorted(valid_types))}"
         if wants_json():
@@ -525,7 +525,7 @@ def trigger_maintenance():
 @admin_required
 def list_reports():
     """
-    Lists flagged items across Confessions, Posts, Vlogs, Course Reviews, and DMs.
+    Lists flagged items across Confessions, Posts, Vlogs, and DMs.
     Includes underlying user_id, real student handle, and @ktu.edu.gh email.
     """
     status_filter = request.args.get("status", "pending")
@@ -592,7 +592,7 @@ def list_reports():
 def inspect_report(report_id: int):
     """
     Fetches full metadata and trace information for a reported item.
-    For anonymous confessions and course reviews, strictly decrypts and reveals
+    For anonymous confessions and posts, strictly decrypts and reveals
     the real author's student ID, handle, and email exclusively for admin safety audits.
     """
     report = Report.query.get_or_404(report_id)

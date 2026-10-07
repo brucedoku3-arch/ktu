@@ -408,18 +408,8 @@ def settings():
         errors = []
         success_messages = []
 
-        # 2. Account Settings: Update Email
-        new_email = (data.get("email") or "").strip().lower()
-        if new_email and new_email != current_user.email.strip().lower():
-            if not User.is_valid_student_email(new_email):
-                errors.append("Invalid email. Must be an official @ktu.edu.gh student email.")
-            else:
-                existing = User.query.filter(User.email.ilike(new_email), User.id != current_user.id).first()
-                if existing:
-                    errors.append("This email address is already registered to another student account.")
-                else:
-                    current_user.email = new_email
-                    success_messages.append("Institutional email updated.")
+        # 2. Account Settings: Email is permanent (signup email cannot be changed)
+        # Campus email address used during student onboarding remains permanently bound to student ID.
 
         # 3. Account Settings: Change Password
         curr_pwd = data.get("current_password")
@@ -438,12 +428,13 @@ def settings():
                 current_user.set_password(new_pwd)
                 success_messages.append("Password successfully updated.")
 
-        # 4. Profile Visibility & Privacy
+        # 4. Profile Visibility & Privacy (Campus Only vs Only Me / Owner - no guest/public)
         if "profile_visibility" in data:
             vis = data.get("profile_visibility", "campus").lower().strip()
-            if vis in ("public", "campus"):
-                current_user.profile_visibility = vis
-                success_messages.append(f"Profile visibility set to {vis.capitalize()}.")
+            if vis in ("campus", "owner", "private"):
+                current_user.profile_visibility = "owner" if vis in ("owner", "private") else "campus"
+                label = "Only Me (Owner)" if current_user.profile_visibility == "owner" else "Campus Only"
+                success_messages.append(f"Profile visibility set to {label}.")
 
         # 5. Notification Preferences
         if request.is_json:
@@ -457,12 +448,8 @@ def settings():
                 current_user.notify_in_app = bool(request.form.get("notify_in_app"))
                 success_messages.append("Notification preferences updated.")
 
-        # 6. Theme Toggle
-        if "theme_preference" in data:
-            theme = data.get("theme_preference", "light").lower().strip()
-            if theme in ("light", "dark"):
-                current_user.theme_preference = theme
-                success_messages.append(f"Theme set to {theme.capitalize()} Mode.")
+        # Theme is strictly Light Mode only
+        current_user.theme_preference = "light"
 
         if errors:
             for err in errors:

@@ -25,7 +25,8 @@ import {
   AlertTriangle,
   CheckCircle2,
   Trash2,
-  Sparkles
+  Sparkles,
+  Settings
 } from 'lucide-react';
 import KTULogo from './KTULogo';
 
@@ -90,6 +91,7 @@ interface StudentProfileViewProps {
   onBack?: () => void;
   onStartChatWithUser?: (username: string) => void;
   onEditProfileClick?: () => void;
+  onOpenSettings?: () => void;
   onDeletePost?: (postId: number, caption: string) => void;
   triggerToast: (msg: string) => void;
   openShareModal?: (data: any) => void;
@@ -104,6 +106,7 @@ export const StudentProfileView: React.FC<StudentProfileViewProps> = ({
   onBack,
   onStartChatWithUser,
   onEditProfileClick,
+  onOpenSettings,
   onDeletePost,
   triggerToast,
   openShareModal,
@@ -242,6 +245,17 @@ export const StudentProfileView: React.FC<StudentProfileViewProps> = ({
                   >
                     Edit Profile
                   </button>
+                  {onOpenSettings && (
+                    <button
+                      type="button"
+                      onClick={onOpenSettings}
+                      className="px-3.5 py-2 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition-colors flex items-center gap-1.5"
+                      title="Account & Privacy Settings"
+                    >
+                      <Settings className="w-3.5 h-3.5 text-slate-600" />
+                      <span>⚙️ Settings</span>
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => {
@@ -501,8 +515,8 @@ export const StudentProfileView: React.FC<StudentProfileViewProps> = ({
                         </div>
                       </div>
 
-                      {/* Post Image (if uploaded) or Gradient Banner */}
-                      {post.imageUrl ? (
+                      {/* Post Image (only if uploaded/captured) */}
+                      {post.imageUrl && (
                         <div className="relative rounded-xl overflow-hidden aspect-video bg-slate-100 group">
                           <img
                             src={post.imageUrl}
@@ -516,14 +530,13 @@ export const StudentProfileView: React.FC<StudentProfileViewProps> = ({
                             </span>
                           )}
                         </div>
-                      ) : (
-                        <div
-                          className={`h-32 rounded-xl bg-gradient-to-r ${
-                            post.imagePlaceholderBg || 'from-amber-500 to-orange-600'
-                          } flex items-center justify-center text-white font-bold p-3 text-center text-xs shadow-inner relative overflow-hidden`}
-                        >
-                          <Flame className="w-8 h-8 text-white/40 absolute -bottom-1 -right-1" />
-                          <span className="relative z-10 leading-tight line-clamp-3">{post.caption}</span>
+                      )}
+
+                      {/* Sound chip if no image */}
+                      {!post.imageUrl && post.soundTitle && (
+                        <div className="inline-flex items-center gap-1 bg-slate-100 text-slate-700 text-[10px] font-semibold px-2.5 py-1 rounded-full border border-slate-200">
+                          <Disc className="w-3 h-3 text-pink-500 animate-spin" />
+                          <span className="truncate max-w-[150px]">{post.soundTitle}</span>
                         </div>
                       )}
 
